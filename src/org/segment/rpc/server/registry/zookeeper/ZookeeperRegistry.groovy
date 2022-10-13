@@ -116,7 +116,7 @@ class ZookeeperRegistry implements Registry {
             scheduler = Executors.newSingleThreadScheduledExecutor(
                     new NamedThreadFactory('refresh-registry-to-local'))
 
-            final int interval = Conf.instance.getInt('client.refresh.registry.interval.ms', 10 * 1000)
+            final int interval = Conf.instance.getInt('client.refresh.registry.interval.seconds', 10 )
 
             def now = new Date()
             int sec = now.seconds
@@ -131,6 +131,7 @@ class ZookeeperRegistry implements Registry {
             }, delaySeconds, interval, TimeUnit.SECONDS)
         } else {
             // use listener
+            // todo
         }
     }
 
@@ -172,5 +173,8 @@ class ZookeeperRegistry implements Registry {
             scheduler.shutdown()
             log.info 'refresh-registry-to-local shutdown'
         }
+
+        def connectString = c.getString('zookeeper.connect.string', '127.0.0.1:2181')
+        ZkClientHolder.instance.disconnect(connectString)
     }
 }
