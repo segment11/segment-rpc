@@ -4,11 +4,13 @@ import com.github.zkclient.ZkClient
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 
+import java.util.concurrent.ConcurrentHashMap
+
 @CompileStatic
 @Singleton
 @Slf4j
 class ZkClientHolder {
-    private Map<String, ZkClient> cached = [:]
+    private Map<String, ZkClient> cached = new ConcurrentHashMap<>()
 
     synchronized ZkClient connect(String connectString, int sessionTimeout = 1000 * 30,
                                   int connectionTimeout = 1000 * 10) {
@@ -23,7 +25,7 @@ class ZkClientHolder {
         one
     }
 
-    void close(String connectString = null) {
+    void disconnect(String connectString = null) {
         cached.each { k, v ->
             if (connectString == null || connectString == k) {
                 log.info 'ready to close zk client - ' + k

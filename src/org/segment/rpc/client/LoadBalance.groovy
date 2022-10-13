@@ -8,4 +8,8 @@ import org.segment.rpc.server.registry.RemoteUrl
 @CompileStatic
 interface LoadBalance {
     Referer select(List<RemoteUrl> list, Req req)
+
+    void init()
+
+    void shutdown()
 }

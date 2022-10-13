@@ -9,7 +9,7 @@ class Conf {
     final static String CONF_FILE_NAME = '/conf.properties'
     Map<String, String> params = [:]
 
-    Conf loadArgs(String[] args) {
+    Conf load() {
         Properties props = [:]
         def stream = Conf.class.getResourceAsStream(CONF_FILE_NAME)
         if (stream) {
@@ -20,7 +20,10 @@ class Conf {
                 params[k.toString()] = v.toString()
             }
         }
+        this
+    }
 
+    Conf loadArgs(String[] args) {
         if (!args) {
             return this
         }

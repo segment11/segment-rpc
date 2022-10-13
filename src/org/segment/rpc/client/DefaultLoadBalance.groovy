@@ -15,4 +15,14 @@ class DefaultLoadBalance implements LoadBalance {
         // todo
         new Referer(remoteUrl: list[0])
     }
+
+    @Override
+    void init() {
+
+    }
+
+    @Override
+    void shutdown() {
+
+    }
 }

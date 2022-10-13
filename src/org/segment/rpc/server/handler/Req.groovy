@@ -16,4 +16,18 @@ class Req extends HeaderSupport implements Serializable {
         this.uri = uri
         this.body = body
     }
+
+    // /rpc/a/b -> /rpc
+    String context() {
+        if (!uri) {
+            return null
+        }
+
+        def arr = uri.split('/')
+        if (arr.length > 1) {
+            return '/' + arr[1]
+        }
+
+        null
+    }
 }

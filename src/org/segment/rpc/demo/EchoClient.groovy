@@ -10,10 +10,13 @@ Utils.stopWhenConsoleQuit {
     client.stop()
 }
 
-10.times { i ->
+int threadNumber = 10
+int loopTimes = 10
+threadNumber.times { i ->
     Thread.start {
-        100.times { j ->
-            println client.send(new Req('/rpc/v1/echo', "hi ${i}, ${j}".toString())).get()?.body
+        loopTimes.times { j ->
+            def resp = client.sendSync(new Req('/rpc/v1/echo', "hi ${i}, ${j}".toString()))
+            println resp?.body
             // mock do business
             long ms = 10 + new Random().nextInt(10)
             Thread.sleep(ms)

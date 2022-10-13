@@ -5,6 +5,8 @@ import org.segment.rpc.server.handler.Req
 
 @CompileStatic
 interface Registry {
+    void init()
+
     void register(RemoteUrl url)
 
     List<RemoteUrl> discover(Req req)

@@ -18,6 +18,7 @@ import org.segment.rpc.server.codec.Decoder
 import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.handler.RpcHandler
 import org.segment.rpc.server.registry.Registry
+import org.segment.rpc.server.registry.RemoteUrl
 
 import java.util.concurrent.TimeUnit
 
@@ -33,7 +34,9 @@ class RpcServer {
 
     private DefaultEventExecutorGroup handlerGroup
 
-    private Registry registry = SpiSupport.getRegistry()
+    private Registry registry
+
+    private RemoteUrl remoteUrl
 
     void stop() {
         if (registry) {
@@ -54,7 +57,10 @@ class RpcServer {
     }
 
     void start() {
-        int port = c.getInt('server.listen.port', 8877)
+        c.load()
+        log.info c.toString()
+        registry = SpiSupport.getRegistry()
+        registry.init()
 
         def cpuNumber = Runtime.getRuntime().availableProcessors()
         int handleGroupThreadNumber = c.getInt('server.handle.group.thread.number', cpuNumber * 2)
@@ -82,8 +88,12 @@ class RpcServer {
                     .childOption(ChannelOption.TCP_NODELAY, true)
                     .childOption(ChannelOption.SO_KEEPALIVE, true)
 
-            String host = Utils.localIp()
+            String host = c.getString('server.listen.host', Utils.localIp())
+            int port = c.getInt('server.listen.port', 8877)
             log.info('server ready to start {}:{}', host, port)
+            remoteUrl = new RemoteUrl(host, port)
+            remoteUrl.context = c.getString('server.registry.context', '/rpc')
+            registry.register(remoteUrl)
 
             def future = bootstrap.bind(host, port).sync()
             future.channel().closeFuture().sync()

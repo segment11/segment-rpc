@@ -30,12 +30,11 @@ import java.util.concurrent.TimeUnit
 class RpcClient {
     private Conf c = Conf.instance
 
-    private EventLoopGroup eventLoopGroup = new NioEventLoopGroup()
+    private EventLoopGroup eventLoopGroup
+    private final Bootstrap bootstrap
 
-    private final Bootstrap bootstrap = new Bootstrap()
-
-    private Registry registry = SpiSupport.getRegistry()
-    private LoadBalance loadBalance = SpiSupport.getLoadBalance()
+    private Registry registry
+    private LoadBalance loadBalance
 
     void stop() {
         if (registry) {
@@ -47,6 +46,18 @@ class RpcClient {
     }
 
     RpcClient() {
+        c.load()
+        log.info c.toString()
+        registry = SpiSupport.getRegistry()
+        registry.init()
+        loadBalance = SpiSupport.getLoadBalance()
+        loadBalance.init()
+
+        eventLoopGroup = new NioEventLoopGroup()
+        bootstrap = new Bootstrap()
+
+        long writerIdleTimeSeconds = c.getInt('client.writer.idle.seconds', 10) as long
+
         bootstrap.group(eventLoopGroup)
                 .channel(NioSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.INFO))
@@ -55,7 +66,8 @@ class RpcClient {
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     void initChannel(SocketChannel ch) {
-                        ch.pipeline().addLast(new IdleStateHandler(0, 5, 0, TimeUnit.SECONDS))
+                        ch.pipeline().addLast(
+                                new IdleStateHandler(0, writerIdleTimeSeconds, 0, TimeUnit.SECONDS))
                                 .addLast(new Encoder())
                                 .addLast(new Decoder())
                                 .addLast(new RpcClientHandler(RpcClient.this))
@@ -68,13 +80,17 @@ class RpcClient {
         CompletableFuture<Channel> completableFuture = new CompletableFuture<>()
         bootstrap.connect(address).addListener({ ChannelFuture future ->
             if (future.isSuccess()) {
-                log.info 'client connect remote server ok {}', address.toString()
+                log.info 'client connect to remote server ok {}', address.toString()
                 completableFuture.complete(future.channel())
             } else {
                 completableFuture.completeExceptionally(future.cause())
             }
         } as ChannelFutureListener)
         completableFuture.get()
+    }
+
+    Resp sendSync(Req req) {
+        send(req).get()
     }
 
     CompletableFuture<Resp> send(Req req) {
@@ -105,11 +121,11 @@ class RpcClient {
     }
 
     void initRpcMessage(RpcMessage msg) {
-        if (c.isOn('client.send.request.gzip')) {
+        if (c.isOn('client.send.request.use.gzip')) {
             msg.compressType = RpcMessage.CompressType.GZIP
         }
         msg.serializeType = Serializer.Type.KYRO
-        if (c.isOn('client.send.request.serialize.type.hessian')) {
+        if (c.isOn('client.send.request.serialize.type.use.hessian')) {
             msg.serializeType = Serializer.Type.HESSIAN
         }
     }

@@ -6,18 +6,29 @@ import groovy.transform.CompileStatic
 class RemoteUrl {
     Protocol protocol = Protocol.SEGMENT_RPC
 
-    String host
+    private String host
 
-    int port
+    private int port
 
-    String context
+    String context = '/rpc'
+
+    Date updatedTime = new Date()
+
+    String getHost() {
+        return host
+    }
+
+    int getPort() {
+        return port
+    }
+
+    RemoteUrl(String host, int port) {
+        this.host = host
+        this.port = port
+    }
 
     InetSocketAddress address() {
         new InetSocketAddress(host, port)
-    }
-
-    static enum Protocol {
-        SEGMENT_RPC
     }
 
     @Override
@@ -36,6 +47,14 @@ class RemoteUrl {
 
     @Override
     String toString() {
-        "${address().toString()}"
+        "${host}:${port}"
+    }
+
+    String getStringWithContext() {
+        "${context}/${host}:${port}"
+    }
+
+    static enum Protocol {
+        SEGMENT_RPC
     }
 }
