@@ -17,9 +17,9 @@ class DefaultLoadBalanceTest extends Specification {
             one.weight = 20
             list << one
         }
-        def one = loadBalance.select(list, null)
-        println one.remoteUrl.toStringView()
+        def remoteUrl = loadBalance.select(list, null)
+        println remoteUrl.toStringView()
         expect:
-        one.remoteUrl.weight >= 10
+        remoteUrl.weight >= 10
     }
 }

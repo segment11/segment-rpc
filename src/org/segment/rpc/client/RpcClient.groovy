@@ -17,7 +17,6 @@ import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.handler.Req
 import org.segment.rpc.server.handler.Resp
-import org.segment.rpc.server.registry.Referer
 import org.segment.rpc.server.registry.Registry
 import org.segment.rpc.server.registry.RemoteUrl
 import org.segment.rpc.server.serialize.Serializer
@@ -96,14 +95,14 @@ class RpcClient {
     }
 
     CompletableFuture<Resp> send(Req req) {
-        def referer = loadBalance.select(registry.discover(req), req)
-        if (referer == null) {
+        def remoteUrl = loadBalance.select(registry.discover(req), req)
+        if (remoteUrl == null) {
             throw new IllegalStateException('no remote server found while request uri context - ' + req.context())
         }
 
-        def channel = getChannelByRefer(referer)
+        def channel = getChannelByRefer(remoteUrl)
         if (!channel.isActive()) {
-            throw new IllegalStateException('channel not active - ' + referer.remoteUrl)
+            throw new IllegalStateException('channel not active - ' + remoteUrl)
         }
 
         def msg = new RpcMessage()
@@ -116,7 +115,7 @@ class RpcClient {
 
         channel.writeAndFlush(msg).addListener({ ChannelFuture future ->
             if (!future.isSuccess()) {
-                log.error 'send request error - ' + referer.remoteUrl, future.cause()
+                log.error 'send request error - ' + remoteUrl, future.cause()
                 resultFuture.completeExceptionally(future.cause())
                 future.channel().close()
             } else {
@@ -136,13 +135,13 @@ class RpcClient {
         }
     }
 
-    Channel getChannelByRefer(Referer referer) {
-        def r = ChannelHolder.instance.get(referer.remoteUrl)
+    Channel getChannelByRefer(RemoteUrl remoteUrl) {
+        def r = ChannelHolder.instance.get(remoteUrl)
         if (r != null) {
             return r
         }
-        def newOne = doConnect(referer.remoteUrl)
-        ChannelHolder.instance.put(referer.remoteUrl, newOne)
+        def newOne = doConnect(remoteUrl)
+        ChannelHolder.instance.put(remoteUrl, newOne)
         newOne
     }
 }
