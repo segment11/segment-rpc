@@ -14,8 +14,11 @@ import io.netty.util.concurrent.DefaultEventExecutorGroup
 import org.segment.rpc.common.Conf
 import org.segment.rpc.common.SpiSupport
 import org.segment.rpc.common.Utils
+import org.segment.rpc.invoke.MethodInvokeHandler
+import org.segment.rpc.invoke.ProxyCreator
 import org.segment.rpc.server.codec.Decoder
 import org.segment.rpc.server.codec.Encoder
+import org.segment.rpc.server.handler.ChainHandler
 import org.segment.rpc.server.handler.RpcHandler
 import org.segment.rpc.server.registry.Registry
 import org.segment.rpc.server.registry.RemoteUrl
@@ -93,7 +96,12 @@ class RpcServer {
             log.info('server ready to start {}:{}', host, port)
             remoteUrl = new RemoteUrl(host, port)
             remoteUrl.context = c.getString('server.registry.context', '/rpc')
+            // first you can set ready false, then use segment-rpc-manager change weight and ready flag
+            remoteUrl.ready = Boolean.valueOf(c.getString('server.ready', 'true'))
+            remoteUrl.weight = c.getInt('server.loadbalance.weight', RemoteUrl.DEFAULT_WEIGHT)
             registry.register(remoteUrl)
+
+            addMethodInvokeHandler()
 
             def future = bootstrap.bind(host, port).sync()
             future.channel().closeFuture().sync()
@@ -102,5 +110,10 @@ class RpcServer {
         } finally {
             stop()
         }
+    }
+
+    // support method invoke
+    private void addMethodInvokeHandler() {
+        ChainHandler.instance.uriPre(remoteUrl.context).get(ProxyCreator.HANDLER_URI, new MethodInvokeHandler())
     }
 }

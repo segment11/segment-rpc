@@ -6,11 +6,9 @@ import groovy.transform.CompileStatic
 abstract class AbstractHandler implements Handler {
     String uri
 
-    String name
-
     @Override
     String name() {
-        name
+        uri
     }
 
     @Override

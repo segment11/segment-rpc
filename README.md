@@ -3,8 +3,9 @@ A Java simple RPC framework based on netty writen in Groovy. Use routers instead
 
 ## TODO
 > 1. ~~registry by zookeeper~~ updated on 2022-10-13
-> 2. load balance and retry
+> 2. ~~load balance~~ and retry
 > 3. metrics / dashboard
+> 4. ~~method invoke~~
 
 ## Echo Client-Server Demo
 

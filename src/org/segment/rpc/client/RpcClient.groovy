@@ -48,6 +48,8 @@ class RpcClient {
     RpcClient() {
         c.load()
         log.info c.toString()
+        c.on('is.client.running')
+
         registry = SpiSupport.getRegistry()
         registry.init()
         loadBalance = SpiSupport.getLoadBalance()
@@ -95,6 +97,10 @@ class RpcClient {
 
     CompletableFuture<Resp> send(Req req) {
         def referer = loadBalance.select(registry.discover(req), req)
+        if (referer == null) {
+            throw new IllegalStateException('no remote server found while request uri context - ' + req.context())
+        }
+
         def channel = getChannelByRefer(referer)
         if (!channel.isActive()) {
             throw new IllegalStateException('channel not active - ' + referer.remoteUrl)
