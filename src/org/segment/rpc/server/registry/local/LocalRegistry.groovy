@@ -5,7 +5,6 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.h2.tools.Server
 import org.segment.rpc.common.Conf
-import org.segment.rpc.common.NamedThreadFactory
 import org.segment.rpc.server.handler.Req
 import org.segment.rpc.server.registry.Registry
 import org.segment.rpc.server.registry.RemoteUrl
@@ -42,8 +41,8 @@ class LocalRegistry implements Registry {
             }
         }
 
-        log.info 'get list from registry {}', getList.collect { it.getStringWithContext() }.toString()
-        log.info 'local list {}', cachedLocalList.collect { it.getStringWithContext() }.toString()
+        log.info 'get list from registry {}', getList.collect { it.toStringView() }.toString()
+        log.info 'local list {}', cachedLocalList.collect { it.toStringView() }.toString()
 
         // do merge list to local
         for (one in getList) {
@@ -89,8 +88,7 @@ create table if not exists t(
         refreshToLocal()
 
         // use interval, simple
-        scheduler = Executors.newSingleThreadScheduledExecutor(
-                new NamedThreadFactory('refresh-registry-to-local-from-local-file'))
+        scheduler = Executors.newSingleThreadScheduledExecutor()
 
         final int interval = Conf.instance.getInt('client.refresh.registry.interval.ms', 10 * 1000)
 
@@ -113,7 +111,7 @@ create table if not exists t(
         if (!row) {
             String addSql = 'insert into t values(?,?,?,?)'
             sql.executeUpdate(addSql, [url.context as Object, url.host, url.port, url.updatedTime])
-            log.info 'registry done add new one {}', url.getStringWithContext()
+            log.info 'registry done add new one {}', url.toStringView()
         } else {
             log.info 'skip as already exists - {}' + row.toString()
         }

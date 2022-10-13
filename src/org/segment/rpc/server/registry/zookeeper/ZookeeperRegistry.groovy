@@ -4,7 +4,6 @@ import com.github.zkclient.ZkClient
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.segment.rpc.common.Conf
-import org.segment.rpc.common.NamedThreadFactory
 import org.segment.rpc.common.ZkClientHolder
 import org.segment.rpc.server.handler.Req
 import org.segment.rpc.server.registry.Registry
@@ -14,6 +13,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 @CompileStatic
 @Singleton
@@ -26,6 +26,8 @@ class ZookeeperRegistry implements Registry {
     private Conf c = Conf.instance
 
     private List<RemoteUrl> cachedLocalList = new CopyOnWriteArrayList<RemoteUrl>()
+
+    private AtomicInteger count = new AtomicInteger(0)
 
     private void refreshToLocal() {
         def zkClient = connect()
@@ -59,22 +61,28 @@ class ZookeeperRegistry implements Registry {
                 int port = arr[1] as int
 
                 def map = readData(zkClient.readData(pathPrefix + context + '/' + address))
-                if ('true' == map['ready']) {
-                    def remoteUrl = new RemoteUrl(host, port)
-                    remoteUrl.context = context
-                    remoteUrl.updatedTime = Date.parse(DATE_FORMAT, map['updateTime'])
-                    getList << remoteUrl
-                }
+                def remoteUrl = new RemoteUrl(host, port)
+                remoteUrl.context = context
+                remoteUrl.ready = Boolean.valueOf(map['ready'])
+                remoteUrl.weight = map['weight'] as int
+                remoteUrl.updatedTime = Date.parse(DATE_FORMAT, map['updateTime'])
+                getList << remoteUrl
             }
         }
 
-        log.info 'get list from registry {}', getList.collect { it.getStringWithContext() }.toString()
-        log.info 'local list {}', cachedLocalList.collect { it.getStringWithContext() }.toString()
+        count.getAndIncrement()
+        def number = count.get()
+        if (number % 10 == 0) {
+            log.info 'get list from registry {} count {}', getList.collect { it.toStringView() }.toString(), number
+            log.info 'local list {}', cachedLocalList.collect { it.toStringView() }.toString()
+        }
 
         // do merge list to local
         for (one in getList) {
             def localOne = cachedLocalList.find { it == one }
             if (localOne) {
+                localOne.ready = one.ready
+                localOne.weight = one.weight
                 localOne.updatedTime = one.updatedTime
             } else {
                 cachedLocalList << one
@@ -83,7 +91,6 @@ class ZookeeperRegistry implements Registry {
         cachedLocalList.removeAll {
             !(it in getList)
         }
-        log.info 'done merge to local cache'
     }
 
     private HashMap<String, String> readData(byte[] data) {
@@ -106,33 +113,28 @@ class ZookeeperRegistry implements Registry {
 
     @Override
     void init() {
+        // not rpc client, need not get registry servers' address
         if (!c.isOn('is.client.running')) {
             return
         }
         refreshToLocal()
 
-        if (c.isOn('client.refresh.registry.use.interval')) {
-            // use interval, simple
-            scheduler = Executors.newSingleThreadScheduledExecutor(
-                    new NamedThreadFactory('refresh-registry-to-local'))
+        // use interval, simple
+        scheduler = Executors.newSingleThreadScheduledExecutor()
 
-            final int interval = Conf.instance.getInt('client.refresh.registry.interval.seconds', 10 )
+        final int interval = Conf.instance.getInt('client.refresh.registry.interval.seconds', 10)
 
-            def now = new Date()
-            int sec = now.seconds
-            long delaySeconds = interval - (sec % interval)
+        def now = new Date()
+        int sec = now.seconds
+        long delaySeconds = interval - (sec % interval)
 
-            scheduler.scheduleWithFixedDelay({
-                try {
-                    refreshToLocal()
-                } catch (Exception e) {
-                    log.error('refresh-registry-to-local error', e)
-                }
-            }, delaySeconds, interval, TimeUnit.SECONDS)
-        } else {
-            // use listener
-            // todo
-        }
+        scheduler.scheduleWithFixedDelay({
+            try {
+                refreshToLocal()
+            } catch (Exception e) {
+                log.error('refresh-registry-to-local error', e)
+            }
+        }, delaySeconds, interval, TimeUnit.SECONDS)
     }
 
     @Override
@@ -148,14 +150,14 @@ class ZookeeperRegistry implements Registry {
             log.info 'created path {}', path
         }
 
-        def data = "ready=true,updateTime=${url.updatedTime.format(DATE_FORMAT)}"
+        def data = "ready=${url.ready},weight=${url.weight},updateTime=${url.updatedTime.format(DATE_FORMAT)}"
         def targetPath = path + '/' + url.toString()
         if (zkClient.exists(targetPath)) {
             zkClient.writeData(targetPath, data.toString().bytes)
         } else {
             zkClient.createEphemeral(targetPath, data.toString().bytes)
         }
-        log.info 'done write data {}', url.toString()
+        log.info 'done write data {}', url.toStringView()
     }
 
     @Override
@@ -164,7 +166,7 @@ class ZookeeperRegistry implements Registry {
         if (context == null) {
             return []
         }
-        cachedLocalList.findAll { context == it.context }
+        cachedLocalList.findAll { context == it.context && it.ready }
     }
 
     @Override

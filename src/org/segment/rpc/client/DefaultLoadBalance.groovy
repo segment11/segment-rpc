@@ -12,8 +12,32 @@ import org.segment.rpc.server.registry.RemoteUrl
 class DefaultLoadBalance implements LoadBalance {
     @Override
     Referer select(List<RemoteUrl> list, Req req) {
-        // todo
-        new Referer(remoteUrl: list[0])
+        int sum = 0
+        for (int i = 0; i < list.size(); i++) {
+            sum += list[i].weight
+        }
+
+        RemoteUrl remoteUrl
+        if (sum < RemoteUrl.DEFAULT_WEIGHT) {
+            if (list) {
+                remoteUrl = list[0]
+            }
+        } else {
+            int weight = new Random().nextInt(sum)
+            int sumInner = 0
+            for (int i = 0; i < list.size(); i++) {
+                sumInner += list[i].weight
+                if (sumInner > weight) {
+                    remoteUrl = list[i]
+                    break
+                }
+            }
+        }
+
+        if (!remoteUrl) {
+            return null
+        }
+        new Referer(remoteUrl: remoteUrl)
     }
 
     @Override

@@ -12,6 +12,8 @@ import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.handler.Resp
 
+import java.util.concurrent.atomic.AtomicInteger
+
 @CompileStatic
 @Slf4j
 class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
@@ -22,10 +24,16 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         this.client = client
     }
 
+    AtomicInteger count = new AtomicInteger(0)
+
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RpcMessage msg) throws Exception {
         if (msg.messageType == RpcMessage.MessageType.PONG) {
-            log.info 'heartbeat {}', msg.data
+            count.getAndIncrement()
+            def number = count.get()
+            if (number % 10 == 0) {
+                log.info 'heartbeat {}, count {}', msg.data, number
+            }
             return
         }
 
@@ -48,7 +56,7 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         if (state != IdleState.WRITER_IDLE) {
             return
         }
-        log.info('write idle {}, do ping', ctx.channel().remoteAddress())
+        log.debug('write idle {}, do ping', ctx.channel().remoteAddress())
 
         Channel channel = ctx.channel()
         def msg = new RpcMessage()
