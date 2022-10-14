@@ -13,14 +13,37 @@ class RpcMessage {
 
     int requestId
 
+    Serializable data
+
     boolean isPingPong() {
         messageType == MessageType.PING || messageType == MessageType.PONG
     }
 
     RpcMessage response() {
+        // use same types as request
         new RpcMessage(serializeType: this.serializeType,
                 messageType: this.messageType == MessageType.PING ? MessageType.PONG : MessageType.RESP,
                 compressType: this.compressType)
+    }
+
+    static enum MessageType {
+        REQ(1 as Byte), RESP(2 as Byte), PING(3 as Byte), PONG(4 as Byte)
+
+        byte value
+
+        MessageType(byte value) {
+            this.value = value
+        }
+    }
+
+    static enum CompressType {
+        NONE(1 as Byte), GZIP(2 as Byte), LZ(3 as Byte)
+
+        byte value
+
+        CompressType(byte value) {
+            this.value = value
+        }
     }
 
     static MessageType convertMessageType(byte b) {
@@ -54,26 +77,4 @@ class RpcMessage {
             return CompressType.LZ
         }
     }
-
-    static enum MessageType {
-        REQ(1 as Byte), RESP(2 as Byte), PING(3 as Byte), PONG(4 as Byte)
-
-        byte value
-
-        MessageType(byte value) {
-            this.value = value
-        }
-    }
-
-    static enum CompressType {
-        NONE(1 as Byte), GZIP(2 as Byte), LZ(3 as Byte)
-
-        byte value
-
-        CompressType(byte value) {
-            this.value = value
-        }
-    }
-
-    Object data
 }

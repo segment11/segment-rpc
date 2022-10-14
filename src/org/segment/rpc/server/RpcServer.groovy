@@ -11,6 +11,7 @@ import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.timeout.IdleStateHandler
 import io.netty.util.concurrent.DefaultEventExecutorGroup
+import io.prometheus.client.exporter.HTTPServer
 import org.segment.rpc.common.Conf
 import org.segment.rpc.common.SpiSupport
 import org.segment.rpc.common.Utils
@@ -41,7 +42,29 @@ class RpcServer {
 
     private RemoteUrl remoteUrl
 
+    private HTTPServer metricsServer
+
+    RpcServer() {
+        c.load()
+        log.info c.toString()
+
+        String host = c.getString('server.listen.host', Utils.localIp())
+        int port = c.getInt('server.listen.port', 8877)
+
+        remoteUrl = new RemoteUrl(host, port)
+        remoteUrl.context = c.getString('server.registry.context', '/rpc')
+        // first you can set ready false, then use segment-rpc-manager change weight and ready flag
+        remoteUrl.ready = Boolean.valueOf(c.getString('server.ready', 'true'))
+        remoteUrl.weight = c.getInt('server.loadbalance.weight', RemoteUrl.DEFAULT_WEIGHT)
+
+        addMethodInvokeHandler()
+    }
+
     void stop() {
+        if (metricsServer) {
+            metricsServer.stop()
+            log.info('stop metric server')
+        }
         if (registry) {
             registry.shutdown()
         }
@@ -60,14 +83,15 @@ class RpcServer {
     }
 
     void start() {
-        c.load()
-        log.info c.toString()
+        int metricServerPort = c.getInt('server.metric.listen.port', 8878)
+        metricsServer = new HTTPServer(remoteUrl.host, metricServerPort)
+        log.info('start metric server {}:{}', remoteUrl.host, metricServerPort)
+
         registry = SpiSupport.getRegistry()
         registry.init()
 
         def cpuNumber = Runtime.getRuntime().availableProcessors()
         int handleGroupThreadNumber = c.getInt('server.handle.group.thread.number', cpuNumber * 2)
-
         handlerGroup = new DefaultEventExecutorGroup(handleGroupThreadNumber,
                 Utils.createThreadFactory('service-handler-group', false)
         )
@@ -91,19 +115,10 @@ class RpcServer {
                     .childOption(ChannelOption.TCP_NODELAY, true)
                     .childOption(ChannelOption.SO_KEEPALIVE, true)
 
-            String host = c.getString('server.listen.host', Utils.localIp())
-            int port = c.getInt('server.listen.port', 8877)
-            log.info('server ready to start {}:{}', host, port)
-            remoteUrl = new RemoteUrl(host, port)
-            remoteUrl.context = c.getString('server.registry.context', '/rpc')
-            // first you can set ready false, then use segment-rpc-manager change weight and ready flag
-            remoteUrl.ready = Boolean.valueOf(c.getString('server.ready', 'true'))
-            remoteUrl.weight = c.getInt('server.loadbalance.weight', RemoteUrl.DEFAULT_WEIGHT)
             registry.register(remoteUrl)
 
-            addMethodInvokeHandler()
-
-            def future = bootstrap.bind(host, port).sync()
+            log.info('server ready to start {}', remoteUrl)
+            def future = bootstrap.bind(remoteUrl.host, remoteUrl.port).sync()
             future.channel().closeFuture().sync()
         } catch (InterruptedException e) {
             log.error('server start interrupted error', e)
@@ -114,6 +129,8 @@ class RpcServer {
 
     // support method invoke
     private void addMethodInvokeHandler() {
-        ChainHandler.instance.uriPre(remoteUrl.context).get(ProxyCreator.HANDLER_URI, new MethodInvokeHandler())
+        ChainHandler.instance.remoteUrl = remoteUrl
+        ChainHandler.instance.context(remoteUrl.context).
+                get(ProxyCreator.HANDLER_URI, new MethodInvokeHandler(remoteUrl))
     }
 }

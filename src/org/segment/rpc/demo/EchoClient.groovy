@@ -5,6 +5,8 @@ import org.segment.rpc.common.Utils
 import org.segment.rpc.invoke.ProxyCreator
 import org.segment.rpc.server.handler.Req
 
+import java.util.concurrent.CountDownLatch
+
 def client = new RpcClient()
 
 Utils.stopWhenConsoleQuit {
@@ -14,11 +16,19 @@ Utils.stopWhenConsoleQuit {
 // test method invoke
 SayInterface say = new ProxyCreator(client, '/rpc').create(SayInterface)
 println say.hi('kerry')
+
 def resp = client.sendSync(new Req('/rpc/v1/echo', "hi kerry".toString()))
 println '' + resp.status + ':' + resp?.body
 
+// not found
+def respEmpty = client.sendSync(new Req('/rpc/v2/echo', "hi kerry".toString()))
+println '' + respEmpty.status + ':' + respEmpty?.body
+
 int threadNumber = 10
 int loopTimes = 10
+
+def latch = new CountDownLatch(threadNumber)
+
 threadNumber.times { i ->
     Thread.start {
         loopTimes.times { j ->
@@ -29,5 +39,10 @@ threadNumber.times { i ->
             long ms = 10 + new Random().nextInt(10)
             Thread.sleep(ms)
         }
+        latch.countDown()
     }
 }
+
+latch.await()
+client.stop()
+

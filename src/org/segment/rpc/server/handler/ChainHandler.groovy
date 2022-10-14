@@ -1,6 +1,9 @@
 package org.segment.rpc.server.handler
 
 import groovy.util.logging.Slf4j
+import io.prometheus.client.Gauge
+import io.prometheus.client.Summary
+import org.segment.rpc.server.registry.RemoteUrl
 
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.regex.Pattern
@@ -8,8 +11,32 @@ import java.util.regex.Pattern
 @Singleton
 @Slf4j
 class ChainHandler implements Handler {
+    private RemoteUrl remoteUrl
+
+    void setRemoteUrl(RemoteUrl remoteUrl) {
+        this.remoteUrl = remoteUrl
+    }
+
+    private String getAddress() {
+        remoteUrl ? remoteUrl.toString() : ''
+    }
+
+    private Summary cost = Summary.build().name('handle_ms').
+            help('rpc handler cost time').
+            labelNames('address', 'context', 'uri').
+            quantile(0.5.doubleValue(), 0.05.doubleValue()).
+            quantile(0.9.doubleValue(), 0.01.doubleValue()).register()
+
+    private Gauge handlerNumber = Gauge.build().name('handler_number').
+            help('handler number').labelNames('address', 'context').register()
+
     @Override
     Resp handle(Req req) {
+        Summary.Timer timer
+        // method invoke use another timer
+        if (!req.isMethodInvoke) {
+            timer = cost.labels(getAddress(), req.context(), req.uri).startTimer()
+        }
         try {
             handleListNoReturn(req, beforeList)
             def resp = handleList(req, list)
@@ -32,6 +59,9 @@ class ChainHandler implements Handler {
                 handleListNoReturn(req, afterAfterList)
             } catch (Exception e) {
                 log.error('after after handle error', e)
+            }
+            if (timer) {
+                timer.observeDuration()
             }
         }
     }
@@ -88,42 +118,43 @@ class ChainHandler implements Handler {
         }
     }
 
-    private String uriPre
+    private String context
 
-    ChainHandler uriPre(String uriPre) {
-        this.uriPre = uriPre
+    ChainHandler context(String context) {
+        this.context = context
         this
     }
 
-    private String addUriPre(String uri) {
-        if (uriPre == null) {
+    private String addContextPath(String uri) {
+        if (context == null) {
             return uri
         }
-        uriPre + uri
+        context + uri
     }
 
     void group(String groupUri, Closure closure) {
-        if (uriPre) {
-            uriPre += groupUri
+        if (context) {
+            context += groupUri
         } else {
-            uriPre = groupUri
+            context = groupUri
         }
         closure.call()
-        uriPre = uriPre[0..-(groupUri.length() + 1)]
+        context = context[0..-(groupUri.length() + 1)]
     }
 
     private ChainHandler add(String uri, AbstractHandler handler,
                              CopyOnWriteArrayList<Handler> ll) {
-        handler.uri = addUriPre(uri)
+        handler.uri = addContextPath(uri)
         removeOneThatExists(handler, ll)
         ll << handler
         log.info 'add handler {}', handler.uri
+        handlerNumber.labels(getAddress(), remoteUrl.context).set(ll.size() as double)
         this
     }
 
     private ChainHandler addRegex(Pattern pattern, RegexMatchHandler handler,
                                   CopyOnWriteArrayList<Handler> ll) {
-        handler.uriPre = uriPre
+        handler.context = context
         handler.pattern = pattern
         removeOneThatExists(handler, ll)
         ll << handler

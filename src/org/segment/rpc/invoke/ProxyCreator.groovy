@@ -36,6 +36,7 @@ class ProxyCreator {
                         meta.args = args
 
                         def req = new Req(context + HANDLER_URI, meta)
+                        req.isMethodInvoke = true
                         def resp = client.sendSync(req)
                         if (!resp.ok()) {
                             throw new RpcMethodInvokeException('invoke error - ' + resp.status + ':' + resp.message)

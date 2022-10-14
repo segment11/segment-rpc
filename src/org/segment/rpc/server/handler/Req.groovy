@@ -10,6 +10,8 @@ class Req extends HeaderSupport implements Serializable {
     String uri
     Object body
 
+    boolean isMethodInvoke = false
+
     Req() {}
 
     Req(String uri, Object body = null) {
@@ -17,15 +19,22 @@ class Req extends HeaderSupport implements Serializable {
         this.body = body
     }
 
+    private String contextCached
+
     // /rpc/a/b -> /rpc
     String context() {
         if (!uri) {
             return null
         }
 
+        if (contextCached) {
+            return contextCached
+        }
+
         def arr = uri.split('/')
         if (arr.length > 1) {
-            return '/' + arr[1]
+            contextCached = '/' + arr[1]
+            return contextCached
         }
 
         null
