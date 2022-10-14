@@ -46,7 +46,12 @@ class DefaultProvider implements ServiceProvider {
         if (!wrapper) {
             return null
         }
-        wrapper.target = beans.get(meta.clazz)
+        def target = beans.get(meta.clazz)
+        if (target instanceof BeanCreator) {
+            wrapper.target = ((BeanCreator) target).create()
+        } else {
+            wrapper.target = target
+        }
         wrapper
     }
 }

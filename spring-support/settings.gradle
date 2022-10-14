@@ -1,0 +1,6 @@
+rootProject.name = 'segment-rpc-spring-support'
+
+include ':segment-rpc'
+project(':segment-rpc').projectDir = new File(settingsDir, '..')
+
+
