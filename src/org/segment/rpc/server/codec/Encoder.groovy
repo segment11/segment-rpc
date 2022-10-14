@@ -34,6 +34,8 @@ class Encoder extends MessageToByteEncoder<RpcMessage> {
 
     private AtomicInteger requestIdGenerator = new AtomicInteger(0)
 
+    private Stats stats = StatsHolder.instance.encoderStats
+
     @Override
     protected void encode(ChannelHandlerContext ctx, RpcMessage message, ByteBuf out) throws Exception {
         out.writeBytes MAGIC_NUMBER
@@ -59,6 +61,8 @@ class Encoder extends MessageToByteEncoder<RpcMessage> {
                 out.writeBytes data
             }
         }
+
+        stats.add(fullLen)
 
         // fully len set
         int writeIndex = out.writerIndex()

@@ -19,6 +19,7 @@ import org.segment.rpc.invoke.MethodInvokeHandler
 import org.segment.rpc.invoke.ProxyCreator
 import org.segment.rpc.server.codec.Decoder
 import org.segment.rpc.server.codec.Encoder
+import org.segment.rpc.server.codec.StatsHolder
 import org.segment.rpc.server.handler.ChainHandler
 import org.segment.rpc.server.handler.RpcHandler
 import org.segment.rpc.server.registry.Registry
@@ -68,6 +69,7 @@ class RpcServer {
         if (registry) {
             registry.shutdown()
         }
+        StatsHolder.instance.stop()
         if (workerGroup) {
             workerGroup.shutdownGracefully()
             log.info('worker group shutdown...')
@@ -89,6 +91,8 @@ class RpcServer {
 
         registry = SpiSupport.getRegistry()
         registry.init()
+
+        StatsHolder.instance.init(remoteUrl)
 
         def cpuNumber = Runtime.getRuntime().availableProcessors()
         int handleGroupThreadNumber = c.getInt('server.handle.group.thread.number', cpuNumber * 2)

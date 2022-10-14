@@ -18,6 +18,8 @@ import static org.segment.rpc.server.codec.RpcMessage.MessageType
 @CompileStatic
 @Slf4j
 class Decoder extends LengthFieldBasedFrameDecoder {
+    private Stats stats = StatsHolder.instance.decoderStats
+
     Decoder() {
         // + 1(version byte length 1)
         super(MAX_FRAME_LENGTH,
@@ -54,6 +56,8 @@ class Decoder extends LengthFieldBasedFrameDecoder {
         checkVersion(frame)
 
         int fullLen = frame.readInt()
+        stats.add(fullLen)
+
         byte messageType = frame.readByte()
         byte serializeType = frame.readByte()
         byte compressType = frame.readByte()
