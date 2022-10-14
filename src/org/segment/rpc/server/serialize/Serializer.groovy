@@ -8,6 +8,7 @@ interface Serializer {
 
     byte[] write(Object obj)
 
+    @CompileStatic
     static enum Type {
         KYRO(1 as Byte), HESSIAN(2 as Byte)
 

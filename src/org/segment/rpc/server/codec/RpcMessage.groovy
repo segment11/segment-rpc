@@ -26,6 +26,7 @@ class RpcMessage {
                 compressType: this.compressType)
     }
 
+    @CompileStatic
     static enum MessageType {
         REQ(1 as Byte), RESP(2 as Byte), PING(3 as Byte), PONG(4 as Byte)
 
@@ -36,6 +37,7 @@ class RpcMessage {
         }
     }
 
+    @CompileStatic
     static enum CompressType {
         NONE(1 as Byte), GZIP(2 as Byte), LZ(3 as Byte)
 

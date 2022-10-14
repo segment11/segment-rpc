@@ -28,6 +28,7 @@ class Stats {
         total
     }
 
+    @CompileStatic
     static class Item {
         long millis
         long number = 0

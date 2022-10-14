@@ -4,6 +4,7 @@ import groovy.transform.CompileStatic
 
 @CompileStatic
 class Resp extends HeaderSupport implements Serializable {
+    @CompileStatic
     static enum Status {
         OK(200), EMPTY(404), INTERNAL_EX(500)
 
