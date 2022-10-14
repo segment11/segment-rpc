@@ -6,8 +6,6 @@ import groovy.transform.CompileStatic
 class RemoteUrl {
     static final int DEFAULT_WEIGHT = 10
 
-    Protocol protocol = Protocol.SEGMENT_RPC
-
     private String host
 
     private int port
@@ -58,9 +56,5 @@ class RemoteUrl {
 
     String toStringView() {
         "${context}/${host}:${port},ready=${ready},weight=${weight},updatedTime:${updatedTime}".toString()
-    }
-
-    static enum Protocol {
-        SEGMENT_RPC
     }
 }
