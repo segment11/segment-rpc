@@ -1,6 +1,5 @@
 package com.segment.rpc.spring
 
-
 import org.segment.rpc.server.provider.DefaultProvider
 import org.springframework.context.support.GenericGroovyApplicationContext
 import spock.lang.Specification

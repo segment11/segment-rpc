@@ -4,6 +4,7 @@ beans {
     xmlns rpc: 'https://github.com/segment11/segment-rpc/tree/main/schema/segment-rpc'
     rpc.'segment-rpc-provider'('base-package': 'com.segment.rpc.spring')
 
+    // it will create a bean named beanRemote
     rpc.'segment-rpc-caller'(interface: 'com.segment.rpc.spring.Bean', client: 'client', context: '/rpc')
 
     client(RpcClient) {
