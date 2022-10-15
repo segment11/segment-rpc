@@ -35,6 +35,12 @@ class RpcClient {
     private Registry registry
     private LoadBalance loadBalance
 
+    private String uuid
+
+    String getUuid() {
+        return uuid
+    }
+
     void stop() {
         if (registry) {
             registry.shutdown()
@@ -48,6 +54,8 @@ class RpcClient {
         c.load()
         log.info c.toString()
         c.on('is.client.running')
+
+        uuid = UUID.randomUUID().toString()
 
         registry = SpiSupport.getRegistry()
         registry.init()
