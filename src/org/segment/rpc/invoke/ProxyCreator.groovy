@@ -7,6 +7,7 @@ import org.segment.rpc.server.handler.Req
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
+import java.util.concurrent.ConcurrentHashMap
 
 @CompileStatic
 class ProxyCreator {
@@ -16,19 +17,32 @@ class ProxyCreator {
 
     private String context
 
+    // local cache
+    private static Map<Key, Object> map = new ConcurrentHashMap<>()
+
     ProxyCreator(RpcClient client, String context) {
         this.client = client
         this.context = context
     }
 
-    public <T> T create(Class<?> interfaceClass) {
+    Object create(Class<?> interfaceClass) {
+        def key = new Key(client.uuid, context, interfaceClass.name)
+        def r = map.get(key)
+        if (r != null) {
+            return r
+        }
+
         Class<?>[] classes = [interfaceClass]
-        return (T) Proxy.newProxyInstance(
+        def newOne = Proxy.newProxyInstance(
                 interfaceClass.getClassLoader(),
                 classes,
                 new InvocationHandler() {
                     @Override
                     Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                        if ('toString' == method.name) {
+                            return "ProxyRpcCaller_" + this.class.name
+                        }
+
                         def meta = new MethodMeta()
                         meta.clazz = method.declaringClass.name
                         meta.method = method.name
@@ -45,5 +59,35 @@ class ProxyCreator {
                     }
                 }
         )
+        map.put(key, newOne)
+        newOne
+    }
+
+    private static class Key {
+        String clientUuid
+        String context
+        String interfaceClassName
+
+        Key(String clientUuid, String context, String interfaceClassName) {
+            this.clientUuid = clientUuid
+            this.context = context
+            this.interfaceClassName = interfaceClassName
+        }
+
+        @Override
+        boolean equals(Object obj) {
+            if (obj == null || !(obj instanceof Key)) {
+                return false
+            }
+
+            def that = (Key) obj
+            this.clientUuid == that.clientUuid && this.context == that.context &&
+                    this.interfaceClassName == that.interfaceClassName
+        }
+
+        @Override
+        int hashCode() {
+            (clientUuid + ',' + context + ',' + interfaceClassName).hashCode()
+        }
     }
 }

@@ -15,7 +15,10 @@ Utils.stopWhenConsoleQuit {
 
 // test method invoke
 SayInterface say = new ProxyCreator(client, '/rpc').create(SayInterface)
+SayInterface say2 = new ProxyCreator(client, '/rpc').create(SayInterface)
+println say == say2
 println say.hi('kerry')
+println say2.hi('kerry')
 
 def resp = client.sendSync(new Req('/rpc/v1/echo', "hi kerry".toString()))
 println '' + resp.status + ':' + resp?.body
