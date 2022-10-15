@@ -6,11 +6,11 @@ import org.springframework.context.annotation.ClassPathBeanDefinitionScanner
 import org.springframework.context.annotation.ComponentScanBeanDefinitionParser
 
 @CompileStatic
-class RpcBeanScanParser extends ComponentScanBeanDefinitionParser {
+class RpcProviderScanParser extends ComponentScanBeanDefinitionParser {
 
     @Override
     protected ClassPathBeanDefinitionScanner createScanner(XmlReaderContext readerContext, boolean useDefaultFilters) {
-        new RpcMethodProviderScanner(readerContext.getRegistry(), useDefaultFilters,
+        new RpcProviderBeanDefinitionScanner(readerContext.getRegistry(), useDefaultFilters,
                 readerContext.getEnvironment(), readerContext.getResourceLoader())
     }
 }

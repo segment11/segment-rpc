@@ -16,6 +16,8 @@ class TestBeanLoad extends Specification {
         def metaList = DefaultProvider.instance.listMethodsByInterface(Bean.class)
         println metaList
         def bean = context.getBean('beanImpl')
+        def beanRemote = context.getBean('beanRemote')
+        println beanRemote
         expect:
         metaList.size() == 1
         bean != null

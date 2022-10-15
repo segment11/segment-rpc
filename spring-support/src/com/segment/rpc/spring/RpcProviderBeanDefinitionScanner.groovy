@@ -13,9 +13,9 @@ import org.springframework.core.io.ResourceLoader
 
 @CompileStatic
 @Slf4j
-class RpcMethodProviderScanner extends ClassPathBeanDefinitionScanner {
-    RpcMethodProviderScanner(BeanDefinitionRegistry registry, boolean useDefaultFilters,
-                             Environment environment, ResourceLoader resourceLoader) {
+class RpcProviderBeanDefinitionScanner extends ClassPathBeanDefinitionScanner {
+    RpcProviderBeanDefinitionScanner(BeanDefinitionRegistry registry, boolean useDefaultFilters,
+                                     Environment environment, ResourceLoader resourceLoader) {
         super(registry, useDefaultFilters, environment, resourceLoader)
     }
 
@@ -23,20 +23,27 @@ class RpcMethodProviderScanner extends ClassPathBeanDefinitionScanner {
     protected void postProcessBeanDefinition(AbstractBeanDefinition beanDefinition, String beanName) {
         super.postProcessBeanDefinition(beanDefinition, beanName)
 
+        ApplicationContext context = resourceLoader as ApplicationContext
+
         beanDefinition.resolveBeanClass(resourceLoader.classLoader)
         def beanClass = beanDefinition.beanClass
+
         def annotation = beanClass.getAnnotation(RpcMethodProvider.class)
         if (annotation == null) {
             return
         }
 
-        ApplicationContext context = resourceLoader as ApplicationContext
-
         Class clazz = annotation.interfaceClass()
         DefaultProvider.instance.provide(clazz, new BeanCreator() {
             @Override
             Object create() {
-                context.getBean(clazz)
+                def beans = context.getBeansOfType(clazz)
+                if (!beans) {
+                    return null
+                }
+                // exclude Remote for client
+                def entry = beans.find { !it.key.endsWith(RpcCallerBeanParser.BEAN_NAME_SUUFIX) }
+                entry?.value
             }
         })
         log.info 'add bean provide - {}', clazz.name
