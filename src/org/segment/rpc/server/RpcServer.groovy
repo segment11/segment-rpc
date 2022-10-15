@@ -12,6 +12,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.handler.timeout.IdleStateHandler
 import io.netty.util.concurrent.DefaultEventExecutorGroup
 import io.prometheus.client.exporter.HTTPServer
+import io.prometheus.client.hotspot.DefaultExports
 import org.segment.rpc.common.Conf
 import org.segment.rpc.common.SpiSupport
 import org.segment.rpc.common.Utils
@@ -53,41 +54,56 @@ class RpcServer {
         int port = c.getInt('server.listen.port', 8877)
 
         remoteUrl = new RemoteUrl(host, port)
+        if (c.isOn('server.metric.export')) {
+            remoteUrl.metricExportPort = c.getInt('server.metric.listen.port', 8878)
+        }
         remoteUrl.context = c.getString('server.registry.context', '/rpc')
         // first you can set ready false, then use segment-rpc-manager change weight and ready flag
         remoteUrl.ready = Boolean.valueOf(c.getString('server.ready', 'true'))
         remoteUrl.weight = c.getInt('server.loadbalance.weight', RemoteUrl.DEFAULT_WEIGHT)
 
-        addMethodInvokeHandler()
+        addDefaultHandler()
+
+        Runtime.addShutdownHook {
+            stop()
+        }
     }
 
     void stop() {
         if (metricsServer) {
             metricsServer.stop()
             log.info('stop metric server')
+            metricsServer = null
         }
         if (registry) {
             registry.shutdown()
+            registry = null
         }
         StatsHolder.instance.stop()
         if (workerGroup) {
             workerGroup.shutdownGracefully()
             log.info('worker group shutdown...')
+            workerGroup = null
         }
         if (bossGroup) {
             bossGroup.shutdownGracefully()
             log.info('boss group shutdown...')
+            bossGroup = null
         }
         if (handlerGroup) {
             handlerGroup.shutdownGracefully()
             log.info('handler group shutdown...')
+            handlerGroup = null
         }
     }
 
     void start() {
-        int metricServerPort = c.getInt('server.metric.listen.port', 8878)
-        metricsServer = new HTTPServer(remoteUrl.host, metricServerPort)
-        log.info('start metric server {}:{}', remoteUrl.host, metricServerPort)
+        if (c.isOn('server.metric.export')) {
+            DefaultExports.initialize()
+            int metricServerPort = c.getInt('server.metric.listen.port', 8878)
+            metricsServer = new HTTPServer(remoteUrl.host, metricServerPort)
+            log.info('start metric server {}:{}', remoteUrl.host, metricServerPort)
+        }
 
         registry = SpiSupport.getRegistry()
         registry.init()
@@ -112,7 +128,7 @@ class RpcServer {
                                     .addLast(new IdleStateHandler(30, 0, 0, TimeUnit.SECONDS))
                                     .addLast(new Encoder())
                                     .addLast(new Decoder())
-                                    .addLast(handlerGroup, new RpcHandler())
+                                    .addLast(handlerGroup, new RpcHandler(remoteUrl))
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)
@@ -131,10 +147,19 @@ class RpcServer {
         }
     }
 
-    // support method invoke
-    private void addMethodInvokeHandler() {
-        ChainHandler.instance.remoteUrl = remoteUrl
-        ChainHandler.instance.context(remoteUrl.context).
+    private void addDefaultHandler() {
+        def h = ChainHandler.instance
+        h.remoteUrl = remoteUrl
+        // add method invoke handler
+        h.context(remoteUrl.context).
                 get(ProxyCreator.HANDLER_URI, new MethodInvokeHandler(remoteUrl))
+
+        // add data get for management
+        h.group('/manage') {
+            h.get('/') { req ->
+                // todo
+                [remoteChannels: RpcHandler.remoteChannelsHolder]
+            }
+        }
     }
 }

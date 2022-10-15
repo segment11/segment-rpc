@@ -44,10 +44,14 @@ class RpcClient {
     void stop() {
         if (registry) {
             registry.shutdown()
+            registry = null
         }
         ChannelHolder.instance.disconnect()
-        eventLoopGroup.shutdownGracefully()
-        log.info('event loop group shutdown...')
+        if (eventLoopGroup) {
+            eventLoopGroup.shutdownGracefully()
+            log.info('event loop group shutdown...')
+            eventLoopGroup = null
+        }
     }
 
     RpcClient() {
@@ -65,8 +69,11 @@ class RpcClient {
         eventLoopGroup = new NioEventLoopGroup()
         bootstrap = new Bootstrap()
 
-        long writerIdleTimeSeconds = c.getInt('client.writer.idle.seconds', 10) as long
+        Runtime.addShutdownHook {
+            stop()
+        }
 
+        long writerIdleTimeSeconds = c.getInt('client.writer.idle.seconds', 10) as long
         bootstrap.group(eventLoopGroup)
                 .channel(NioSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.INFO))

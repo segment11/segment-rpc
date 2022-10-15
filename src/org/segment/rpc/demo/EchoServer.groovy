@@ -1,6 +1,6 @@
 package org.segment.rpc.demo
 
-import org.segment.rpc.common.Utils
+import org.segment.rpc.common.ConsoleReader
 import org.segment.rpc.server.RpcServer
 import org.segment.rpc.server.handler.ChainHandler
 import org.segment.rpc.server.handler.Resp
@@ -18,7 +18,11 @@ h.context('/rpc').group('/v1') {
 
 DefaultProvider.instance.provide(SayInterface.class, new SayImpl())
 
-Utils.stopWhenConsoleQuit {
+def reader = ConsoleReader.instance
+reader.quitHandler = {
+    println 'stop...'
     server.stop()
 }
+reader.read()
+
 server.start()

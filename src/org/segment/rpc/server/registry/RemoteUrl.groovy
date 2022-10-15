@@ -10,6 +10,8 @@ class RemoteUrl {
 
     private int port
 
+    int metricExportPort = 0
+
     String context = '/rpc'
 
     boolean ready = true

@@ -24,32 +24,24 @@ class Utils {
         InetAddress.localHost.hostAddress
     }
 
-    static void stopWhenConsoleQuit(Closure<Void> closure, InputStream is = null) {
-        boolean isStopped = false
-        Runtime.addShutdownHook {
-            if (!isStopped) {
-                closure.call()
-            }
-        }
-
-        if (isWindows()) {
-            Thread.start {
-                def br = new BufferedReader(new InputStreamReader(is ?: System.in))
-                while (true) {
-                    if (br.readLine() == 'quit') {
-                        println 'quit from console...'
-                        closure.call()
-                        isStopped = true
-                        break
-                    }
-                }
-            }
-        }
-    }
-
     static ThreadFactory createThreadFactory(String namePrefix, boolean daemon) {
         new ThreadFactoryBuilder()
                 .setNameFormat(namePrefix + "-%d")
                 .setDaemon(daemon).build()
+    }
+
+    static String getStackTraceString(Throwable t) {
+        if (!t) {
+            return ''
+        }
+
+        def writer = new StringWriter()
+        def pw = new PrintWriter(writer)
+        t.printStackTrace(pw)
+        pw.flush()
+        writer.flush()
+        pw.close()
+        writer.close()
+        writer.toString()
     }
 }

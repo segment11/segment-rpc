@@ -7,12 +7,52 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.handler.timeout.IdleState
 import io.netty.handler.timeout.IdleStateEvent
+import io.prometheus.client.Gauge
 import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.RpcMessage
+import org.segment.rpc.server.registry.RemoteUrl
+
+import java.util.concurrent.ConcurrentHashMap
 
 @CompileStatic
 @Slf4j
 class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
+
+    private RemoteUrl remoteUrl
+
+    RpcHandler(RemoteUrl remoteUrl) {
+        this.remoteUrl = remoteUrl
+    }
+
+    // for management dashboard
+    static Map<String, Map<String, Object>> remoteChannelsHolder = new ConcurrentHashMap<>()
+
+    private Gauge channelsNumber = Gauge.build().name('channel_connected_number').
+            help('channel_connected_number').
+            labelNames('address').register()
+
+    @Override
+    void channelRegistered(ChannelHandlerContext ctx) throws Exception {
+        super.channelRegistered(ctx)
+
+        String remoteAddress = ctx.channel().remoteAddress().toString()
+        Map map = [date: new Date() as Object]
+        remoteChannelsHolder.put(remoteAddress, map)
+        log.info 'channel register {}', remoteAddress
+
+        channelsNumber.labels(remoteUrl.toString()).set(remoteChannelsHolder.size())
+    }
+
+    @Override
+    void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
+        super.channelUnregistered(ctx)
+
+        String remoteAddress = ctx.channel().remoteAddress().toString()
+        remoteChannelsHolder.remove(remoteAddress)
+        log.info 'channel unregister {}', remoteAddress
+
+        channelsNumber.labels(remoteUrl.toString()).set(remoteChannelsHolder.size())
+    }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RpcMessage msg) throws Exception {

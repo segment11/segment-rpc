@@ -1,7 +1,7 @@
 package org.segment.rpc.demo
 
 import org.segment.rpc.client.RpcClient
-import org.segment.rpc.common.Utils
+import org.segment.rpc.common.ConsoleReader
 import org.segment.rpc.invoke.ProxyCreator
 import org.segment.rpc.server.handler.Req
 
@@ -9,9 +9,14 @@ import java.util.concurrent.CountDownLatch
 
 def client = new RpcClient()
 
-Utils.stopWhenConsoleQuit {
+def reader = ConsoleReader.instance
+reader.quitHandler = {
     client.stop()
 }
+reader.lineHandler = { line ->
+    println client.sendSync(new Req('/rpc/v1/echo', line))?.body
+}
+reader.read()
 
 // test method invoke
 SayInterface say = new ProxyCreator(client, '/rpc').create(SayInterface)
@@ -47,5 +52,5 @@ threadNumber.times { i ->
 }
 
 latch.await()
-client.stop()
+println 'requests sent done'
 

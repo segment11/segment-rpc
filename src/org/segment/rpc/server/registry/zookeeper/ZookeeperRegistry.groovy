@@ -63,6 +63,7 @@ class ZookeeperRegistry implements Registry {
                 def map = readData(zkClient.readData(pathPrefix + context + '/' + address))
                 def remoteUrl = new RemoteUrl(host, port)
                 remoteUrl.context = context
+                remoteUrl.metricExportPort = map['metricExportPort'] as int
                 remoteUrl.ready = Boolean.valueOf(map['ready'])
                 remoteUrl.weight = map['weight'] as int
                 remoteUrl.updatedTime = Date.parse(DATE_FORMAT, map['updateTime'])
@@ -150,7 +151,8 @@ class ZookeeperRegistry implements Registry {
             log.info 'created path {}', path
         }
 
-        def data = "ready=${url.ready},weight=${url.weight},updateTime=${url.updatedTime.format(DATE_FORMAT)}"
+        def data = "ready=${url.ready},weight=${url.weight},metricExportPort=${url.metricExportPort}," +
+                "updateTime=${url.updatedTime.format(DATE_FORMAT)}"
         def targetPath = path + '/' + url.toString()
         if (zkClient.exists(targetPath)) {
             zkClient.writeData(targetPath, data.toString().bytes)
