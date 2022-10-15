@@ -27,9 +27,13 @@ class ZookeeperRegistry implements Registry {
 
     private List<RemoteUrl> cachedLocalList = new CopyOnWriteArrayList<RemoteUrl>()
 
+    List<RemoteUrl> getCachedLocalList() {
+        return cachedLocalList
+    }
+
     private AtomicInteger count = new AtomicInteger(0)
 
-    private void refreshToLocal() {
+    void refreshToLocal() {
         def zkClient = connect()
         def pathPrefix = c.getString('zookeeper.path.prefix', '/segment-rpc')
 
@@ -92,6 +96,11 @@ class ZookeeperRegistry implements Registry {
         cachedLocalList.removeAll {
             !(it in getList)
         }
+    }
+
+    // for dashboard project
+    void clearLocal() {
+        cachedLocalList.clear()
     }
 
     private HashMap<String, String> readData(byte[] data) {

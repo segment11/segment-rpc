@@ -1,0 +1,48 @@
+plugins {
+    id 'groovy'
+    id 'java'
+}
+
+group 'org.segment.base'
+version '1.0'
+
+final String artifactId = 'segment-rpc-dashboard'
+
+repositories {
+    maven {
+        url 'https://maven.aliyun.com/repository/public'
+    }
+}
+
+sourceSets {
+    main {
+        groovy {
+            srcDirs = ['src']
+        }
+        resources {
+            srcDirs = ['resources']
+        }
+    }
+}
+
+dependencies {
+    compile 'org.slf4j:slf4j-api:1.7.30'
+    compile 'org.codehaus.groovy:groovy-all:2.4.19'
+
+    compile project(':segment-rpc')
+    compile project(':segmentweb')
+    compile project(':segmentd')
+}
+
+String libDir = 'dist'
+
+task buildToRun(type: Copy) {
+    from configurations.runtime
+    into libDir
+}
+
+task clearLibDir(type: Delete) {
+    file(libDir).deleteDir()
+}
+
+buildToRun.dependsOn clearLibDir

@@ -1,0 +1,67 @@
+<div ng-controller="MainCtrl">
+
+    <div class="container-fluid">
+
+        <div class="row-fluid">
+
+            <div class="widget-box">
+                <div class="widget-title">
+                    <span class="icon"><i class="icon-info"></i></span>
+                    <h5>{{tmp.name}} - {{tmp.des}}</h5>
+                </div>
+                <div class="widget-content">
+                    <div class="form-group">
+                        <label>Cluster: </label>
+                        <select ng-model="tmp.context" ng-options="a.value as a.value for a in tmp.contextList"
+                                style="width: 80px;" ng-change="onContextChoose()">
+                            <option value="" selected>--/--</option>
+                        </select>
+                    </div>
+
+                    <legend>Server List</legend>
+
+                    <table class="table table-bordered table-striped">
+                        <tr>
+                            <th width="20%">Address</th>
+                            <th width="10%">Is Ready</th>
+                            <th width="20%">Load Balance Weight</th>
+                            <th width="10%">Metrics On</th>
+                            <th width="20%">Registry Time</th>
+                            <th></th>
+                        </tr>
+                        <tr ng-repeat="one in list">
+                            <td>{{one.host}}:{{one.port}}</td>
+                            <td>
+                                <span class="bg-info">{{one.ready}}</span>
+                                <br />
+                                <button ng-show="one.ready" class="btn"
+                                        ng-click="changeReady(one)">Set Not Ready</button>
+                                <button ng-show="!one.ready" class="btn btn-red"
+                                        ng-click="changeReady(one)">Set Ready</button>
+                            </td>
+                            <td><span class="bg-info">{{one.weight}}</span></td>
+                            <td>
+                                <span class="bg-info">{{one.metricExportPort != 0}}</span>
+                                <br />
+                                <button ng-show="one.metricExportPort != 0" class="btn"
+                                        ng-click="showMetrics(one)">Show Metrics</button>
+                            </td>
+                            <td>
+                                {{one.updatedTime|date:'yyyy/MM/dd HH:mm:ss'}}
+                                <br />
+                                {{one.updatedTime|timeAgo}}
+                            </td>
+                            <td class="opts">
+                                <button class="btn" ng-click="updateWeight(one)">Update Weight</button>
+                            </td>
+                        </tr>
+                    </table>
+
+                </div>
+            </div>
+
+        </div><!-- /.row-fluid -->
+
+    </div>
+
+</div>

@@ -6,9 +6,9 @@ import groovy.transform.CompileStatic
 class RemoteUrl {
     static final int DEFAULT_WEIGHT = 10
 
-    private String host
+    String host
 
-    private int port
+    int port
 
     int metricExportPort = 0
 
@@ -26,6 +26,9 @@ class RemoteUrl {
 
     int getPort() {
         return port
+    }
+
+    RemoteUrl() {
     }
 
     RemoteUrl(String host, int port) {

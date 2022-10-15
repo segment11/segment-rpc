@@ -8,7 +8,7 @@ A Java simple RPC framework based on netty writen in Groovy. Use routers instead
 > 4. spring context support
 
 ## todos
-> 1. dashboard / management
+> 1. ~~dashboard~~ / management
 
 ## Echo Client-Server Demo
 
@@ -20,7 +20,6 @@ zookeeper.connect.string=192.168.99.100:2181
 ```groovy
 package org.segment.rpc.demo
 
-import org.segment.rpc.common.Utils
 import org.segment.rpc.server.RpcServer
 import org.segment.rpc.server.handler.ChainHandler
 import org.segment.rpc.server.handler.Resp
@@ -38,9 +37,6 @@ h.context('/rpc').group('/v1') {
 
 DefaultProvider.instance.provide(SayInterface.class, new SayImpl())
 
-Utils.stopWhenConsoleQuit {
-    server.stop()
-}
 server.start()
 ```
 
@@ -49,15 +45,10 @@ server.start()
 package org.segment.rpc.demo
 
 import org.segment.rpc.client.RpcClient
-import org.segment.rpc.common.Utils
 import org.segment.rpc.invoke.ProxyCreator
 import org.segment.rpc.server.handler.Req
 
 def client = new RpcClient()
-
-Utils.stopWhenConsoleQuit {
-    client.stop()
-}
 
 // test method invoke
 SayInterface say = new ProxyCreator(client, '/rpc').create(SayInterface)
@@ -129,3 +120,6 @@ class TestBeanLoad extends Specification {
     }
 }
 ```
+
+## dashboard overview: 
+![alt](dashboard/segment_rpc_dashboard_update_weight.png) 

@@ -1,0 +1,12 @@
+rootProject.name = 'segment-rpc-dashboard'
+
+include ':segment-rpc'
+project(':segment-rpc').projectDir = new File(settingsDir, '..')
+
+include ':segmentweb'
+project(':segmentweb').projectDir = new File(settingsDir, '../../segmentweb')
+
+include ':segmentd'
+project(':segmentd').projectDir = new File(settingsDir, '../../segmentd')
+
+

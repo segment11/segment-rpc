@@ -46,8 +46,13 @@ class RpcServer {
 
     private HTTPServer metricsServer
 
-    RpcServer() {
+    RpcServer(Properties props = null) {
         c.load()
+        if (props) {
+            props.each { k, v ->
+                c.put(k.toString(), v)
+            }
+        }
         log.info c.toString()
 
         String host = c.getString('server.listen.host', Utils.localIp())
