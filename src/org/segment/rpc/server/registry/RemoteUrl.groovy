@@ -28,6 +28,7 @@ class RemoteUrl {
         return port
     }
 
+    // for encode in dashboard
     RemoteUrl() {
     }
 

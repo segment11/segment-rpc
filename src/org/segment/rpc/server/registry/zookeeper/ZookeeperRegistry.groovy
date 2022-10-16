@@ -6,8 +6,7 @@ import groovy.util.logging.Slf4j
 import org.segment.rpc.common.RpcConf
 import org.segment.rpc.common.ZkClientHolder
 import org.segment.rpc.server.handler.Req
-import org.segment.rpc.server.registry.Registry
-import org.segment.rpc.server.registry.RemoteUrl
+import org.segment.rpc.server.registry.*
 
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
@@ -88,8 +87,11 @@ class ZookeeperRegistry implements Registry {
                 localOne.weight = one.weight
                 localOne.updatedTime = one.updatedTime
             } else {
+                // set ready false and trigger client do connect first and then set ready true when channel is active
+                one.ready = false
                 cachedLocalList << one
                 log.info 'added new one - ' + one.toStringView()
+                EventHandler.instance.fire(one, EventType.NEW_ADDED)
             }
         }
 
@@ -99,6 +101,7 @@ class ZookeeperRegistry implements Registry {
             if (!getList.contains(one)) {
                 it.remove()
                 log.info 'removed old one - ' + one.toStringView()
+                EventHandler.instance.fire(one, EventType.OLD_REMOVED)
             }
         }
     }
@@ -133,6 +136,8 @@ class ZookeeperRegistry implements Registry {
         if (!c.isOn('is.client.running')) {
             return
         }
+
+        initEventHandler()
         refreshToLocal()
 
         // use interval, simple
@@ -151,6 +156,42 @@ class ZookeeperRegistry implements Registry {
                 log.error('refresh-registry-to-local error', e)
             }
         }, delaySeconds, interval, TimeUnit.SECONDS)
+    }
+
+    private void initEventHandler() {
+        EventHandler.instance.add(new EventTrigger() {
+            @Override
+            EventType type() {
+                EventType.ACTIVE
+            }
+
+            @Override
+            def handle(RemoteUrl remoteUrl) {
+                for (one in cachedLocalList) {
+                    if (one == remoteUrl) {
+                        one.ready = true
+                        log.info 'channel is active {} set ready = true', one
+                    }
+                }
+            }
+        })
+
+        EventHandler.instance.add(new EventTrigger() {
+            @Override
+            EventType type() {
+                EventType.INACTIVE
+            }
+
+            @Override
+            def handle(RemoteUrl remoteUrl) {
+                for (one in cachedLocalList) {
+                    if (one == remoteUrl) {
+                        one.ready = false
+                        log.info 'channel is inactive {} set ready = false', one
+                    }
+                }
+            }
+        })
     }
 
     @Override

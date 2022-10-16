@@ -15,6 +15,8 @@ class ChannelHolder {
 
     Channel get(RemoteUrl remoteUrl) {
         def r = items[remoteUrl]
+        // will never happen
+        // when registry found new server list, connect and add to holder already
         if (r && !r.isActive()) {
             log.warn 'channel not active {}', r.remoteAddress()
             items.remove(remoteUrl)
@@ -28,9 +30,16 @@ class ChannelHolder {
 
     void disconnect() {
         items.each { k, v ->
-            log.info 'ready to disconnect {}', k.toString()
-            v.close()
-            log.info 'done disconnect {}', k.toString()
+            if (v.isOpen()) {
+                try {
+                    log.info 'ready to disconnect {}', k.toString()
+                    v.close()
+                    log.info 'done disconnect {}', k.toString()
+                } catch (Exception e) {
+                    log.error('disconnect channel error - ' + k, e)
+                }
+            }
         }
+        items.clear()
     }
 }

@@ -17,8 +17,7 @@ import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.handler.Req
 import org.segment.rpc.server.handler.Resp
-import org.segment.rpc.server.registry.Registry
-import org.segment.rpc.server.registry.RemoteUrl
+import org.segment.rpc.server.registry.*
 import org.segment.rpc.server.serialize.Serializer
 
 import java.util.concurrent.CompletableFuture
@@ -41,7 +40,11 @@ class RpcClient {
         return uuid
     }
 
+    private volatile boolean isStopped = false
+
     void stop() {
+        isStopped = true
+
         if (registry) {
             registry.shutdown()
             registry = null
@@ -60,12 +63,9 @@ class RpcClient {
         log.info c.toString()
         c.on('is.client.running')
 
-        uuid = UUID.randomUUID().toString()
+        initEventHandler()
 
-        registry = SpiSupport.getRegistry(c)
-        registry.init(c)
-        loadBalance = SpiSupport.getLoadBalance()
-        loadBalance.init()
+        uuid = UUID.randomUUID().toString()
 
         eventLoopGroup = new NioEventLoopGroup()
         bootstrap = new Bootstrap()
@@ -87,12 +87,22 @@ class RpcClient {
                                 new IdleStateHandler(0, writerIdleTimeSeconds, 0, TimeUnit.SECONDS))
                                 .addLast(new Encoder())
                                 .addLast(new Decoder())
-                                .addLast(new RpcClientHandler(RpcClient.this))
+                                .addLast(new RpcClientHandler())
                     }
                 })
+
+        loadBalance = SpiSupport.getLoadBalance()
+        loadBalance.init()
+        // registry init in the end, because need doConnect when get remote server list
+        registry = SpiSupport.getRegistry(c)
+        registry.init(c)
     }
 
     Channel doConnect(RemoteUrl remoteUrl) {
+        if (isStopped) {
+            return null
+        }
+
         def address = remoteUrl.address()
         CompletableFuture<Channel> completableFuture = new CompletableFuture<>()
         bootstrap.connect(address).addListener({ ChannelFuture future ->
@@ -111,14 +121,19 @@ class RpcClient {
     }
 
     CompletableFuture<Resp> send(Req req) {
+        if (isStopped) {
+            throw new IllegalStateException('rpc client stopped')
+        }
+
         def remoteUrl = loadBalance.select(registry.discover(req), req)
         if (remoteUrl == null) {
             throw new IllegalStateException('no remote server found while request uri context - ' + req.context())
         }
 
-        def channel = getChannelByRefer(remoteUrl)
-        if (!channel.isActive()) {
-            // todo
+        def channel = ChannelHolder.instance.get(remoteUrl)
+        // will never happen
+        // when registry found new server list, connect and add to holder already
+        if (channel == null || !channel.isActive()) {
             throw new IllegalStateException('channel not active - ' + remoteUrl)
         }
 
@@ -136,7 +151,10 @@ class RpcClient {
                 resultFuture.completeExceptionally(future.cause())
                 future.channel().close()
             } else {
-                log.debug('send request ok {}', msg)
+                if (log.isDebugEnabled()) {
+                    // data may be too long, to string will cost too much time
+                    log.debug('send request ok {}', msg.data)
+                }
             }
         } as ChannelFutureListener)
         resultFuture
@@ -152,13 +170,20 @@ class RpcClient {
         }
     }
 
-    Channel getChannelByRefer(RemoteUrl remoteUrl) {
-        def r = ChannelHolder.instance.get(remoteUrl)
-        if (r != null) {
-            return r
-        }
-        def newOne = doConnect(remoteUrl)
-        ChannelHolder.instance.put(remoteUrl, newOne)
-        newOne
+    private void initEventHandler() {
+        EventHandler.instance.add(new EventTrigger() {
+            @Override
+            EventType type() {
+                EventType.NEW_ADDED
+            }
+
+            @Override
+            def handle(RemoteUrl remoteUrl) {
+                def newOne = doConnect(remoteUrl)
+                if (newOne) {
+                    ChannelHolder.instance.put(remoteUrl, newOne)
+                }
+            }
+        })
     }
 }

@@ -52,6 +52,8 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
             result.data = Encoder.PONG
         } else {
             Req req = msg.data as Req
+            // sync
+            // use thread pool and future todo
             def resp = ChainHandler.instance.handle(req)
             if (resp) {
                 // for future complete

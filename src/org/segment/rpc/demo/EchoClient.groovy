@@ -9,6 +9,9 @@ import java.util.concurrent.CountDownLatch
 
 def client = new RpcClient()
 
+// wait and channel will be active
+Thread.sleep(2000)
+
 def reader = ConsoleReader.instance
 reader.quitHandler = {
     client.stop()

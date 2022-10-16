@@ -11,18 +11,15 @@ import io.netty.handler.timeout.IdleStateEvent
 import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.handler.Resp
+import org.segment.rpc.server.registry.EventHandler
+import org.segment.rpc.server.registry.EventType
+import org.segment.rpc.server.registry.RemoteUrl
 
 import java.util.concurrent.atomic.AtomicInteger
 
 @CompileStatic
 @Slf4j
 class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
-
-    private RpcClient client
-
-    RpcClientHandler(RpcClient client) {
-        this.client = client
-    }
 
     AtomicInteger count = new AtomicInteger(0)
 
@@ -43,6 +40,28 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
         Resp resp = msg.data as Resp
         ProcessFuture.instance.complete(resp)
+    }
+
+    @Override
+    void channelActive(ChannelHandlerContext ctx) throws Exception {
+        InetSocketAddress socketAddress = ctx.channel().remoteAddress() as InetSocketAddress
+        def address = socketAddress.address
+        def remoteUrl = new RemoteUrl(address.hostAddress, socketAddress.port)
+        log.info 'channel active {}', remoteUrl
+        EventHandler.instance.fire(remoteUrl, EventType.ACTIVE)
+
+        super.channelActive(ctx)
+    }
+
+    @Override
+    void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        InetSocketAddress socketAddress = ctx.channel().remoteAddress() as InetSocketAddress
+        def address = socketAddress.address
+        def remoteUrl = new RemoteUrl(address.hostAddress, socketAddress.port)
+        log.info 'channel inactive {}', remoteUrl
+        EventHandler.instance.fire(remoteUrl, EventType.INACTIVE)
+
+        super.channelInactive(ctx)
     }
 
     @Override
