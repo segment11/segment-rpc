@@ -1,7 +1,7 @@
 package ctrl
 
 import model.ZkClusterDTO
-import org.segment.rpc.common.Conf
+import org.segment.rpc.common.RpcConf
 import org.segment.rpc.server.registry.RemoteUrl
 import org.segment.rpc.server.registry.zookeeper.ZookeeperRegistry
 import org.segment.web.handler.ChainHandler
@@ -35,8 +35,13 @@ h.group('/zk') {
 
         ZkClusterDTO one = new ZkClusterDTO(id: id as int).one()
 
-        Conf.instance.put('zookeeper.connect.string', one.connectString)
-        def registry = ZookeeperRegistry.instance
+        Map map = [:]
+        map[RpcConf.ZK_CONNECT_STRING] = one.connectString
+        map[RpcConf.ZK_PATH_PREFIX] = one.prefix
+        def c = new RpcConf().extend(map)
+
+        def registry = new ZookeeperRegistry()
+        registry.init(c)
         registry.clearLocal()
         registry.refreshToLocal()
 
@@ -46,18 +51,40 @@ h.group('/zk') {
         }
         [r: r, contextList: r.keySet().collect { [value: it] }]
     }.post('/switch') { req, resp ->
+        def id = req.param('id')
+        assert id
+
+        ZkClusterDTO one = new ZkClusterDTO(id: id as int).one()
+
+        Map map = [:]
+        map[RpcConf.ZK_CONNECT_STRING] = one.connectString
+        map[RpcConf.ZK_PATH_PREFIX] = one.prefix
+        def c = new RpcConf().extend(map)
+
+        def registry = new ZookeeperRegistry()
+        registry.init(c)
+
         RemoteUrl url = req.bodyAs(RemoteUrl)
         url.ready = !url.ready
         url.updatedTime = new Date()
-
-        def registry = ZookeeperRegistry.instance
         registry.register(url)
         [flag: true, ready: url.ready]
     }.post('/weight/update') { req, resp ->
+        def id = req.param('id')
+        assert id
+
+        ZkClusterDTO one = new ZkClusterDTO(id: id as int).one()
+
+        Map map = [:]
+        map[RpcConf.ZK_CONNECT_STRING] = one.connectString
+        map[RpcConf.ZK_PATH_PREFIX] = one.prefix
+        def c = new RpcConf().extend(map)
+
+        def registry = new ZookeeperRegistry()
+        registry.init(c)
+
         RemoteUrl url = req.bodyAs(RemoteUrl)
         url.updatedTime = new Date()
-
-        def registry = ZookeeperRegistry.instance
         registry.register(url)
         [flag: true, weight: url.weight]
     }

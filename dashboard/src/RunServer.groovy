@@ -2,6 +2,8 @@ import conf.DefaultLocalH2DataSourceCreator
 import org.segment.d.D
 import org.segment.d.MySQLDialect
 import org.segment.rpc.common.ConsoleReader
+import org.segment.rpc.common.ZkClientHolder
+import org.segment.rpc.manage.RpcClientHolder
 import org.segment.web.RouteRefreshLoader
 import org.segment.web.RouteServer
 import org.segment.web.common.CachedGroovyClassLoader
@@ -43,6 +45,7 @@ loader.init(this.getClass().classLoader, srcDirPath + ':' + resourceDirPath)
 ChainHandler.instance.context('/dashboard')
 
 def server = RouteServer.instance
+server.isStartMetricServer = false
 server.loader = RouteRefreshLoader.create(loader.gcl).
         addClasspath(srcDirPath).
         addClasspath(resourceDirPath).
@@ -52,6 +55,8 @@ server.webRoot = c.projectPath('/www')
 def reader = ConsoleReader.instance
 reader.quitHandler = {
     println 'stop...'
+    RpcClientHolder.instance.stop()
+    ZkClientHolder.instance.disconnect()
     server.stop()
 }
 reader.read()

@@ -19,6 +19,16 @@ class DefaultProvider implements ServiceProvider {
         }
     }
 
+    List<MethodMeta> allMethods() {
+        List<MethodMeta> r = []
+        map.each { k, v ->
+            for (it in v) {
+                r << it.meta
+            }
+        }
+        r
+    }
+
     @Override
     void provide(Class interfaceClass, Object target) {
         def list = new CopyOnWriteArrayList<MethodWrapper>()

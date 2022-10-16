@@ -27,7 +27,11 @@ class ConsoleReader {
                 }
 
                 if (lineHandler != null) {
-                    lineHandler.call(line)
+                    try {
+                        lineHandler.call(line)
+                    } catch (Exception e) {
+                        e.printStackTrace()
+                    }
                 } else {
                     println '...'
                 }

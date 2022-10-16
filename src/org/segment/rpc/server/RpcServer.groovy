@@ -22,7 +22,9 @@ import org.segment.rpc.server.codec.Decoder
 import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.StatsHolder
 import org.segment.rpc.server.handler.ChainHandler
+import org.segment.rpc.server.handler.Resp
 import org.segment.rpc.server.handler.RpcHandler
+import org.segment.rpc.server.provider.DefaultProvider
 import org.segment.rpc.server.registry.Registry
 import org.segment.rpc.server.registry.RemoteUrl
 
@@ -155,13 +157,20 @@ class RpcServer {
                 get(ProxyCreator.HANDLER_URI, new MethodInvokeHandler(remoteUrl))
 
         // add data get for management
-        h.group('/manage') {
-            h.get('/') { req ->
-                // todo
-                def handlerNameList = h.list.collect {
+        h.group('/remote') {
+            h.get('/overview') { req ->
+                def uriList = h.list.collect {
                     it.name()
                 }
-                [clientChannelInfo: RpcHandler.clientChannelInfoHolder, handlerNameList: handlerNameList]
+                def methodList = DefaultProvider.instance.allMethods().collect {
+                    [clazz: it.clazz, method: it.method, paramTypes: it.paramTypes.collect { Class type ->
+                        type.name
+                    }]
+                }
+                def r = [clientChannelInfo: RpcHandler.clientChannelInfoHolder,
+                         uriList          : uriList,
+                         methodList       : methodList]
+                Resp.one(r)
             }
         }
     }
