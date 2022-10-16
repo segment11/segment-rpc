@@ -59,7 +59,12 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         def address = socketAddress.address
         def remoteUrl = new RemoteUrl(address.hostAddress, socketAddress.port)
         log.info 'channel inactive {}', remoteUrl
-        EventHandler.instance.fire(remoteUrl, EventType.INACTIVE)
+
+        // if all channel is inactive, fire event, so that the registry(discover) will set ready false
+        def isLeftActive = ChannelHolder.instance.isLeftActive(remoteUrl, ctx.channel())
+        if (!isLeftActive) {
+            EventHandler.instance.fire(remoteUrl, EventType.INACTIVE)
+        }
 
         super.channelInactive(ctx)
     }

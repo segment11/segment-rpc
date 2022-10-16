@@ -1,5 +1,6 @@
 package org.segment.rpc.server
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.netty.bootstrap.ServerBootstrap
@@ -113,10 +114,11 @@ class RpcServer {
         StatsHolder.instance.init(remoteUrl)
 
         def cpuNumber = Runtime.getRuntime().availableProcessors()
-        int handleGroupThreadNumber = c.getInt('server.handle.group.thread.number', cpuNumber * 2)
-        handlerGroup = new DefaultEventExecutorGroup(handleGroupThreadNumber,
-                Utils.createThreadFactory('service-handler-group', false)
-        )
+        int handleGroupThreadNumber = c.getInt('server.handle.group.thread.number', cpuNumber * 10)
+        def threadFactory = new ThreadFactoryBuilder()
+                .setNameFormat('service-handler-group' + "-%d")
+                .setDaemon(false).build()
+        handlerGroup = new DefaultEventExecutorGroup(handleGroupThreadNumber, threadFactory)
 
         workerGroup = new NioEventLoopGroup()
         bossGroup = new NioEventLoopGroup()
@@ -130,7 +132,7 @@ class RpcServer {
                                     .addLast(new IdleStateHandler(30, 0, 0, TimeUnit.SECONDS))
                                     .addLast(new Encoder())
                                     .addLast(new Decoder())
-                                    .addLast(handlerGroup, new RpcHandler(remoteUrl))
+                                    .addLast(handlerGroup, new RpcHandler(c, remoteUrl))
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)

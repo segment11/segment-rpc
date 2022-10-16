@@ -1,9 +1,7 @@
 package org.segment.rpc.common
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder
-import groovy.transform.CompileStatic
 
-import java.util.concurrent.ThreadFactory
+import groovy.transform.CompileStatic
 
 @CompileStatic
 class Utils {
@@ -22,12 +20,6 @@ class Utils {
 
     static String localIp() {
         InetAddress.localHost.hostAddress
-    }
-
-    static ThreadFactory createThreadFactory(String namePrefix, boolean daemon) {
-        new ThreadFactoryBuilder()
-                .setNameFormat(namePrefix + "-%d")
-                .setDaemon(daemon).build()
     }
 
     static String getStackTraceString(Throwable t) {

@@ -3,14 +3,12 @@ package org.segment.rpc.common
 import groovy.transform.CompileStatic
 
 @CompileStatic
-class RpcConf {
+class RpcConf extends AbstractConf {
 
     final static String ZK_CONNECT_STRING = 'zookeeper.connect.string'
     final static String ZK_PATH_PREFIX = 'zookeeper.path.prefix'
 
     final static String CONF_FILE_NAME = '/conf.properties'
-
-    Map<String, String> params = [:]
 
     RpcConf extend(Map<String, Object> params = null) {
         if (params) {
@@ -61,23 +59,6 @@ class RpcConf {
         this
     }
 
-    String get(String key) {
-        params[key]
-    }
-
-    String getString(String key, String defaultValue) {
-        get(key) ?: defaultValue
-    }
-
-    int getInt(String key, int defaultValue) {
-        def s = get(key)
-        s ? s as int : defaultValue
-    }
-
-    boolean isOn(String key) {
-        '1' == get(key)
-    }
-
     RpcConf put(String key, Object value) {
         params[key] = value.toString()
         this
@@ -89,10 +70,5 @@ class RpcConf {
 
     RpcConf off(String key) {
         put(key, 0)
-    }
-
-    @Override
-    String toString() {
-        params.toString()
     }
 }

@@ -7,21 +7,34 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.handler.timeout.IdleState
 import io.netty.handler.timeout.IdleStateEvent
+import org.segment.rpc.common.RpcConf
 import org.segment.rpc.manage.ClientChannelInfo
 import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.registry.RemoteUrl
 
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ThreadPoolExecutor
 
 @CompileStatic
 @Slf4j
 class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
+    // async
+    private ThreadPoolExecutor executor
+
+    private RpcConf c
 
     private RemoteUrl remoteUrl
 
-    RpcHandler(RemoteUrl remoteUrl) {
+    RpcHandler(RpcConf c, RemoteUrl remoteUrl) {
+        this.c = c
         this.remoteUrl = remoteUrl
+
+        initThreadPoolExecutor()
+    }
+
+    void initThreadPoolExecutor() {
+
     }
 
     // for management dashboard
@@ -53,7 +66,6 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
         } else {
             Req req = msg.data as Req
             // sync
-            // use thread pool and future todo
             def resp = ChainHandler.instance.handle(req)
             if (resp) {
                 // for future complete

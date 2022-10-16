@@ -132,9 +132,9 @@ class RpcClient {
 
         def channel = ChannelHolder.instance.get(remoteUrl)
         // will never happen
-        // when registry found new server list, connect and add to holder already
-        if (channel == null || !channel.isActive()) {
-            throw new IllegalStateException('channel not active - ' + remoteUrl)
+        // because when registry found new server list, do connect and add to channel holder already
+        if (channel == null) {
+            throw new IllegalStateException('channel not found - ' + remoteUrl)
         }
 
         def msg = new RpcMessage()
@@ -179,9 +179,12 @@ class RpcClient {
 
             @Override
             def handle(RemoteUrl remoteUrl) {
-                def newOne = doConnect(remoteUrl)
-                if (newOne) {
-                    ChannelHolder.instance.put(remoteUrl, newOne)
+                int needCreateChannelNumber = remoteUrl.getInt('client.channel.number', 5)
+                for (int i = 0; i < needCreateChannelNumber; i++) {
+                    def newOne = RpcClient.this.doConnect(remoteUrl)
+                    if (newOne) {
+                        ChannelHolder.instance.put(remoteUrl, newOne)
+                    }
                 }
             }
         })

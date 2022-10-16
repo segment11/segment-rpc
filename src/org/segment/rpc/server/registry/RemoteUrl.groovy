@@ -1,9 +1,10 @@
 package org.segment.rpc.server.registry
 
 import groovy.transform.CompileStatic
+import org.segment.rpc.common.AbstractConf
 
 @CompileStatic
-class RemoteUrl {
+class RemoteUrl extends AbstractConf {
     static final int DEFAULT_WEIGHT = 10
 
     String host
