@@ -7,34 +7,24 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.handler.timeout.IdleState
 import io.netty.handler.timeout.IdleStateEvent
-import org.segment.rpc.common.RpcConf
 import org.segment.rpc.manage.ClientChannelInfo
 import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.registry.RemoteUrl
 
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ThreadPoolExecutor
 
 @CompileStatic
 @Slf4j
 class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
-    // async
+    private RemoteUrl remoteUrl
     private ThreadPoolExecutor executor
 
-    private RpcConf c
-
-    private RemoteUrl remoteUrl
-
-    RpcHandler(RpcConf c, RemoteUrl remoteUrl) {
-        this.c = c
+    RpcHandler(RemoteUrl remoteUrl, ThreadPoolExecutor executor) {
         this.remoteUrl = remoteUrl
-
-        initThreadPoolExecutor()
-    }
-
-    void initThreadPoolExecutor() {
-
+        this.executor = executor
     }
 
     // for management dashboard
@@ -60,24 +50,41 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RpcMessage msg) throws Exception {
-        RpcMessage result = msg.response()
-        if (msg.messageType == RpcMessage.MessageType.PING) {
-            result.data = Encoder.PONG
-        } else {
-            Req req = msg.data as Req
-            // sync
-            def resp = ChainHandler.instance.handle(req)
-            if (resp) {
-                // for future complete
-                resp.uuid = req.uuid
-                result.data = resp
-            } else {
-                def empty = Resp.empty()
-                empty.uuid = req.uuid
-                result.data = empty
-            }
-        }
+        try {
+            executor.submit {
+                RpcMessage result = msg.response()
+                if (msg.messageType == RpcMessage.MessageType.PING) {
+                    result.data = Encoder.PONG
+                } else {
+                    Req req = msg.data as Req
+                    def resp = ChainHandler.instance.handle(req)
+                    if (resp) {
+                        // for future complete
+                        resp.uuid = req.uuid
+                        result.data = resp
+                    } else {
+                        def empty = Resp.empty()
+                        empty.uuid = req.uuid
+                        result.data = empty
+                    }
+                }
 
+                writeAndFlush(ctx, result)
+            }
+        } catch (RejectedExecutionException e) {
+            if (!msg.isPingPong()) {
+                Req req = msg.data as Req
+                log.warn('thread pool reject, request id {}', req.uuid)
+            }
+
+            RpcMessage result = msg.response()
+            result.data = Resp.fail('thread pool reject')
+
+            writeAndFlush(ctx, result)
+        }
+    }
+
+    private void writeAndFlush(ChannelHandlerContext ctx, RpcMessage result) {
         if (ctx.channel().isActive() && ctx.channel().isWritable()) {
             ctx.writeAndFlush(result).addListener(ChannelFutureListener.CLOSE_ON_FAILURE)
         } else {

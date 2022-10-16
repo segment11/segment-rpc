@@ -25,10 +25,12 @@ import org.segment.rpc.server.codec.StatsHolder
 import org.segment.rpc.server.handler.ChainHandler
 import org.segment.rpc.server.handler.Resp
 import org.segment.rpc.server.handler.RpcHandler
+import org.segment.rpc.server.handler.StandardThreadExecutor
 import org.segment.rpc.server.provider.DefaultProvider
 import org.segment.rpc.server.registry.Registry
 import org.segment.rpc.server.registry.RemoteUrl
 
+import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
 @CompileStatic
@@ -49,6 +51,8 @@ class RpcServer {
 
     private HTTPServer metricsServer
 
+    private ThreadPoolExecutor executor
+
     RpcServer(RpcConf conf = null) {
         this.c = conf ?: RpcConf.fromLoad()
         log.info c.toString()
@@ -66,10 +70,23 @@ class RpcServer {
         remoteUrl.weight = c.getInt('server.loadbalance.weight', RemoteUrl.DEFAULT_WEIGHT)
 
         addDefaultHandler()
+        initThreadPoolExecutor()
 
         Runtime.addShutdownHook {
             stop()
         }
+    }
+
+    private void initThreadPoolExecutor() {
+        int minWorkerThread = c.getInt('server.handler.thread.pool.min', 10)
+        int maxWorkerThread = c.getInt('server.handler.thread.pool.max', 20)
+        int workerQueueSize = c.getInt('server.handler.thread.pool.queue.size', 100)
+
+        def threadFactory = new ThreadFactoryBuilder()
+                .setNameFormat('rpc-handler-port-' + remoteUrl.port + "-%d")
+                .setDaemon(false).build()
+        executor = new StandardThreadExecutor(minWorkerThread, maxWorkerThread, workerQueueSize, threadFactory)
+        executor.prestartAllCoreThreads()
     }
 
     void stop() {
@@ -98,6 +115,11 @@ class RpcServer {
             log.info('handler group shutdown...')
             handlerGroup = null
         }
+        if (executor) {
+            executor.shutdown()
+            log.info('rpc-handler-thread-pool-executor shutdown...')
+            executor = null
+        }
     }
 
     void start() {
@@ -114,7 +136,7 @@ class RpcServer {
         StatsHolder.instance.init(remoteUrl)
 
         def cpuNumber = Runtime.getRuntime().availableProcessors()
-        int handleGroupThreadNumber = c.getInt('server.handle.group.thread.number', cpuNumber * 10)
+        int handleGroupThreadNumber = c.getInt('server.handle.group.thread.number', cpuNumber * 2)
         def threadFactory = new ThreadFactoryBuilder()
                 .setNameFormat('service-handler-group' + "-%d")
                 .setDaemon(false).build()
@@ -132,7 +154,7 @@ class RpcServer {
                                     .addLast(new IdleStateHandler(30, 0, 0, TimeUnit.SECONDS))
                                     .addLast(new Encoder())
                                     .addLast(new Decoder())
-                                    .addLast(handlerGroup, new RpcHandler(c, remoteUrl))
+                                    .addLast(handlerGroup, new RpcHandler(remoteUrl, executor))
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)
