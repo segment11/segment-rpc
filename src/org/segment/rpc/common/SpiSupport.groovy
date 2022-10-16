@@ -11,13 +11,13 @@ import org.segment.rpc.server.registry.zookeeper.ZookeeperRegistry
 class SpiSupport {
     static ClassLoader cl = SpiSupport.class.classLoader
 
-    static Registry getRegistry() {
-        if (Conf.instance.isOn('registry.use.local')) {
+    static Registry getRegistry(RpcConf c) {
+        if (c.isOn('registry.use.local')) {
             return LocalRegistry.instance
         }
 
         ServiceLoader.load(Registry, cl).find { it.class.name.startsWith('vendor') } as Registry
-                ?: ZookeeperRegistry.instance
+                ?: new ZookeeperRegistry()
     }
 
     static LoadBalance getLoadBalance() {

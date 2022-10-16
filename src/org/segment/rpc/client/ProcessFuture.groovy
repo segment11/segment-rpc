@@ -28,4 +28,12 @@ class ProcessFuture {
     int pendingLength() {
         items.size()
     }
+
+    void discard() {
+        def t = new IllegalStateException('discard')
+        items.each { k, v ->
+            v.completeExceptionally(t)
+            log.warn 'discard request uuid : ' + k
+        }
+    }
 }

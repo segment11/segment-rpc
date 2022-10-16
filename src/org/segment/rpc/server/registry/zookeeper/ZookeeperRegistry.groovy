@@ -3,29 +3,27 @@ package org.segment.rpc.server.registry.zookeeper
 import com.github.zkclient.ZkClient
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.segment.rpc.common.Conf
+import org.segment.rpc.common.RpcConf
 import org.segment.rpc.common.ZkClientHolder
 import org.segment.rpc.server.handler.Req
 import org.segment.rpc.server.registry.Registry
 import org.segment.rpc.server.registry.RemoteUrl
 
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 @CompileStatic
-@Singleton
 @Slf4j
 class ZookeeperRegistry implements Registry {
     private final static String DATE_FORMAT = 'yyyy-MM-dd HH:mm:ss'
 
+    private RpcConf c
+
     private ScheduledExecutorService scheduler
 
-    private Conf c = Conf.instance
-
-    private List<RemoteUrl> cachedLocalList = new CopyOnWriteArrayList<RemoteUrl>()
+    private List<RemoteUrl> cachedLocalList = new LinkedList<RemoteUrl>()
 
     List<RemoteUrl> getCachedLocalList() {
         return cachedLocalList
@@ -77,7 +75,7 @@ class ZookeeperRegistry implements Registry {
 
         count.getAndIncrement()
         def number = count.get()
-        if (number % 10 == 0) {
+        if (number % 100 == 0) {
             log.info 'get list from registry {} count {}', getList.collect { it.toStringView() }.toString(), number
             log.info 'local list {}', cachedLocalList.collect { it.toStringView() }.toString()
         }
@@ -91,10 +89,17 @@ class ZookeeperRegistry implements Registry {
                 localOne.updatedTime = one.updatedTime
             } else {
                 cachedLocalList << one
+                log.info 'added new one - ' + one.toStringView()
             }
         }
-        cachedLocalList.removeAll {
-            !(it in getList)
+
+        def it = cachedLocalList.iterator()
+        while (it.hasNext()) {
+            def one = it.next()
+            if (!getList.contains(one)) {
+                it.remove()
+                log.info 'removed old one - ' + one.toStringView()
+            }
         }
     }
 
@@ -122,7 +127,8 @@ class ZookeeperRegistry implements Registry {
     }
 
     @Override
-    void init() {
+    void init(RpcConf c) {
+        this.c = c
         // not rpc client, need not get registry servers' address
         if (!c.isOn('is.client.running')) {
             return
@@ -132,7 +138,7 @@ class ZookeeperRegistry implements Registry {
         // use interval, simple
         scheduler = Executors.newSingleThreadScheduledExecutor()
 
-        final int interval = Conf.instance.getInt('client.refresh.registry.interval.seconds', 10)
+        final int interval = c.getInt('client.refresh.registry.interval.seconds', 10)
 
         def now = new Date()
         int sec = now.seconds

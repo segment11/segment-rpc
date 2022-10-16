@@ -10,7 +10,7 @@ import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.handler.logging.LogLevel
 import io.netty.handler.logging.LoggingHandler
 import io.netty.handler.timeout.IdleStateHandler
-import org.segment.rpc.common.Conf
+import org.segment.rpc.common.RpcConf
 import org.segment.rpc.common.SpiSupport
 import org.segment.rpc.server.codec.Decoder
 import org.segment.rpc.server.codec.Encoder
@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit
 @CompileStatic
 @Slf4j
 class RpcClient {
-    private Conf c = Conf.instance
+    private RpcConf c
 
     private EventLoopGroup eventLoopGroup
     private final Bootstrap bootstrap
@@ -52,17 +52,18 @@ class RpcClient {
             log.info('event loop group shutdown...')
             eventLoopGroup = null
         }
+        ProcessFuture.instance.discard()
     }
 
-    RpcClient() {
-        c.load()
+    RpcClient(RpcConf conf = null) {
+        this.c = conf ?: RpcConf.fromLoad()
         log.info c.toString()
         c.on('is.client.running')
 
         uuid = UUID.randomUUID().toString()
 
-        registry = SpiSupport.getRegistry()
-        registry.init()
+        registry = SpiSupport.getRegistry(c)
+        registry.init(c)
         loadBalance = SpiSupport.getLoadBalance()
         loadBalance.init()
 
@@ -117,6 +118,7 @@ class RpcClient {
 
         def channel = getChannelByRefer(remoteUrl)
         if (!channel.isActive()) {
+            // todo
             throw new IllegalStateException('channel not active - ' + remoteUrl)
         }
 

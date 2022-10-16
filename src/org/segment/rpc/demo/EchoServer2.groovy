@@ -1,16 +1,20 @@
 package org.segment.rpc.demo
 
 import org.segment.rpc.common.ConsoleReader
+import org.segment.rpc.common.RpcConf
 import org.segment.rpc.server.RpcServer
 import org.segment.rpc.server.handler.ChainHandler
 import org.segment.rpc.server.handler.Resp
 import org.segment.rpc.server.provider.DefaultProvider
 
-Properties props = [:]
+Map props = [:]
 props['server.listen.port'] = 18877
 props['server.metric.listen.port'] = 18878
 
-def server = new RpcServer(props)
+def c = RpcConf.fromLoad()
+c.extend(props)
+
+def server = new RpcServer(c)
 
 def h = ChainHandler.instance
 h.context('/rpc').group('/v1') {

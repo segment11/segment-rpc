@@ -13,7 +13,7 @@ import io.netty.handler.timeout.IdleStateHandler
 import io.netty.util.concurrent.DefaultEventExecutorGroup
 import io.prometheus.client.exporter.HTTPServer
 import io.prometheus.client.hotspot.DefaultExports
-import org.segment.rpc.common.Conf
+import org.segment.rpc.common.RpcConf
 import org.segment.rpc.common.SpiSupport
 import org.segment.rpc.common.Utils
 import org.segment.rpc.invoke.MethodInvokeHandler
@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit
 @Slf4j
 class RpcServer {
 
-    private Conf c = Conf.instance
+    private RpcConf c
 
     private EventLoopGroup workerGroup
 
@@ -46,13 +46,8 @@ class RpcServer {
 
     private HTTPServer metricsServer
 
-    RpcServer(Properties props = null) {
-        c.load()
-        if (props) {
-            props.each { k, v ->
-                c.put(k.toString(), v)
-            }
-        }
+    RpcServer(RpcConf conf = null) {
+        this.c = conf ?: RpcConf.fromLoad()
         log.info c.toString()
 
         String host = c.getString('server.listen.host', Utils.localIp())
@@ -110,8 +105,8 @@ class RpcServer {
             log.info('start metric server {}:{}', remoteUrl.host, metricServerPort)
         }
 
-        registry = SpiSupport.getRegistry()
-        registry.init()
+        registry = SpiSupport.getRegistry(c)
+        registry.init(c)
 
         StatsHolder.instance.init(remoteUrl)
 
@@ -163,7 +158,10 @@ class RpcServer {
         h.group('/manage') {
             h.get('/') { req ->
                 // todo
-                [remoteChannels: RpcHandler.remoteChannelsHolder]
+                def handlerNameList = h.list.collect {
+                    it.name()
+                }
+                [clientChannelInfo: RpcHandler.clientChannelInfoHolder, handlerNameList: handlerNameList]
             }
         }
     }

@@ -3,15 +3,39 @@ package org.segment.rpc.common
 import groovy.transform.CompileStatic
 
 @CompileStatic
-@Singleton
-class Conf {
+class RpcConf {
+
+    final static String ZK_CONNECT_STRING = 'zookeeper.connect.string'
+    final static String ZK_PATH_PREFIX = 'zookeeper.path.prefix'
 
     final static String CONF_FILE_NAME = '/conf.properties'
+
     Map<String, String> params = [:]
 
-    Conf load() {
+    RpcConf extend(Map<String, Object> params = null) {
+        if (params) {
+            for (entry in params.entrySet()) {
+                this.params[entry.key] = entry.value.toString()
+            }
+        }
+        this
+    }
+
+    private static volatile RpcConf localOne
+
+    static RpcConf fromLoad() {
+        if (localOne) {
+            return localOne
+        }
+        def c = new RpcConf()
+        c.load()
+        localOne = c
+        c
+    }
+
+    private RpcConf load() {
         Properties props = [:]
-        def stream = Conf.class.getResourceAsStream(CONF_FILE_NAME)
+        def stream = RpcConf.class.getResourceAsStream(CONF_FILE_NAME)
         if (stream) {
             def r = new InputStreamReader(stream, 'utf-8')
             props.load(r)
@@ -23,7 +47,7 @@ class Conf {
         this
     }
 
-    Conf loadArgs(String[] args) {
+    RpcConf loadArgs(String[] args) {
         if (!args) {
             return this
         }
@@ -54,16 +78,16 @@ class Conf {
         '1' == get(key)
     }
 
-    Conf put(String key, Object value) {
+    RpcConf put(String key, Object value) {
         params[key] = value.toString()
         this
     }
 
-    Conf on(String key) {
+    RpcConf on(String key) {
         put(key, 1)
     }
 
-    Conf off(String key) {
+    RpcConf off(String key) {
         put(key, 0)
     }
 

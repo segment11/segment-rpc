@@ -4,7 +4,7 @@ import groovy.sql.Sql
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.h2.tools.Server
-import org.segment.rpc.common.Conf
+import org.segment.rpc.common.RpcConf
 import org.segment.rpc.server.handler.Req
 import org.segment.rpc.server.registry.Registry
 import org.segment.rpc.server.registry.RemoteUrl
@@ -60,7 +60,7 @@ class LocalRegistry implements Registry {
     }
 
     @Override
-    void init() {
+    void init(RpcConf c) {
         if (isNeedStartH2Server) {
             server = Server.createTcpServer('-tcp', '-tcpAllowOthers', '-tcpPort', '8082', '-ifNotExists').start()
         }
@@ -90,7 +90,7 @@ create table if not exists t(
         // use interval, simple
         scheduler = Executors.newSingleThreadScheduledExecutor()
 
-        final int interval = Conf.instance.getInt('client.refresh.registry.interval.ms', 10 * 1000)
+        final int interval = c.getInt('client.refresh.registry.interval.ms', 10 * 1000)
 
         def now = new Date()
         int sec = now.seconds
