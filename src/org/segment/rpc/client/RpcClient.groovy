@@ -79,7 +79,7 @@ class RpcClient {
                 .channel(NioSocketChannel.class)
                 .handler(new LoggingHandler(LogLevel.INFO))
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS,
-                        c.getInt('client.connect.timeout.millis', 5000))
+                        c.getInt('client.connect.timeout.millis', 2000))
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
                     void initChannel(SocketChannel ch) {
@@ -98,22 +98,30 @@ class RpcClient {
         registry.init(c)
     }
 
-    Channel doConnect(RemoteUrl remoteUrl) {
+    synchronized Channel doConnect(RemoteUrl remoteUrl) {
         if (isStopped) {
             return null
         }
 
         def address = remoteUrl.address()
-        CompletableFuture<Channel> completableFuture = new CompletableFuture<>()
-        bootstrap.connect(address).addListener({ ChannelFuture future ->
-            if (future.isSuccess()) {
-                log.info 'client connect to remote server ok {}', address.toString()
-                completableFuture.complete(future.channel())
-            } else {
-                completableFuture.completeExceptionally(future.cause())
-            }
-        } as ChannelFutureListener)
-        completableFuture.get()
+        def future = bootstrap.connect(address)
+
+        def connectTimeoutMs = c.getInt('client.connect.timeout.millis', 2000)
+        // sync
+        def result = future.awaitUninterruptibly(connectTimeoutMs, TimeUnit.MILLISECONDS)
+        def isSuccess = future.isSuccess()
+
+        if (result && isSuccess) {
+            log.info 'client connect to remote server ok {}', address.toString()
+            return future.channel()
+        }
+
+        if (future.cause() != null) {
+            future.cancel(false)
+            log.error('client connect to remote server error ' + address.toString(), future.cause())
+            return null
+        }
+        null
     }
 
     Resp sendSync(Req req) {
@@ -134,7 +142,13 @@ class RpcClient {
         // will never happen
         // because when registry found new server list, do connect and add to channel holder already
         if (channel == null) {
-            throw new IllegalStateException('channel not found - ' + remoteUrl)
+            def newOne = doConnect(remoteUrl)
+            if (newOne) {
+                ChannelHolder.instance.add(remoteUrl, newOne)
+                channel = newOne
+            } else {
+                throw new IllegalStateException('channel not found - ' + remoteUrl)
+            }
         }
 
         def msg = new RpcMessage()
@@ -185,7 +199,7 @@ class RpcClient {
                 for (int i = 0; i < needCreateChannelNumber; i++) {
                     def newOne = RpcClient.this.doConnect(remoteUrl)
                     if (newOne) {
-                        ChannelHolder.instance.put(remoteUrl, newOne)
+                        ChannelHolder.instance.add(remoteUrl, newOne)
                     }
                 }
             }

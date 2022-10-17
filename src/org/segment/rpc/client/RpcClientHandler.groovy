@@ -44,10 +44,12 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
     @Override
     void channelActive(ChannelHandlerContext ctx) throws Exception {
-        InetSocketAddress socketAddress = ctx.channel().remoteAddress() as InetSocketAddress
+        def channel = ctx.channel()
+        InetSocketAddress localAddress = channel.localAddress() as InetSocketAddress
+        InetSocketAddress socketAddress = channel.remoteAddress() as InetSocketAddress
         def address = socketAddress.address
         def remoteUrl = new RemoteUrl(address.hostAddress, socketAddress.port)
-        log.info 'channel active {}', remoteUrl
+        log.info 'channel active local {} remote {}', localAddress, remoteUrl
         EventHandler.instance.fire(remoteUrl, EventType.ACTIVE)
 
         super.channelActive(ctx)
@@ -55,13 +57,15 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
     @Override
     void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        InetSocketAddress socketAddress = ctx.channel().remoteAddress() as InetSocketAddress
+        def channel = ctx.channel()
+        InetSocketAddress localAddress = channel.localAddress() as InetSocketAddress
+        InetSocketAddress socketAddress = channel.remoteAddress() as InetSocketAddress
         def address = socketAddress.address
         def remoteUrl = new RemoteUrl(address.hostAddress, socketAddress.port)
-        log.info 'channel inactive {}', remoteUrl
+        log.info 'channel active local {} remote {}', localAddress, remoteUrl
 
         // if all channel is inactive, fire event, so that the registry(discover) will set ready false
-        def isLeftActive = ChannelHolder.instance.isLeftActive(remoteUrl, ctx.channel())
+        def isLeftActive = ChannelHolder.instance.isLeftActive(remoteUrl, channel)
         if (!isLeftActive) {
             EventHandler.instance.fire(remoteUrl, EventType.INACTIVE)
         }

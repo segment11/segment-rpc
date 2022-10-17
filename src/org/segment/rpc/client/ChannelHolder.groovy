@@ -19,7 +19,7 @@ class ChannelHolder {
         channels.get()
     }
 
-    void put(RemoteUrl remoteUrl, Channel channel) {
+    void add(RemoteUrl remoteUrl, Channel channel) {
         def channels = new MultiChannel(remoteUrl)
         channels.add(channel)
         def old = items.putIfAbsent(remoteUrl, channels)
