@@ -51,17 +51,4 @@ class RpcConf extends AbstractConf {
         }
         this
     }
-
-    RpcConf put(String key, Object value) {
-        params[key] = value.toString()
-        this
-    }
-
-    RpcConf on(String key) {
-        put(key, 1)
-    }
-
-    RpcConf off(String key) {
-        put(key, 0)
-    }
 }

@@ -65,6 +65,7 @@
                                 </td>
                                 <td class="opts">
                                     <button class="btn" ng-click="updateWeight(one)">Update Weight</button>
+                                    <button class="btn" ng-click="updateParams(one)">Update Parameters</button>
                                 </td>
                             </tr>
                         </table>
@@ -114,7 +115,7 @@
     </div>
 
     <script type="text/x-template"
-            ui-dialog="{showModel: 'ctrl.isShowStats', title: 'Stats', dialogId: 'dialogStats', lock: true, fixed: true, ext: {max: false}}">
+            ui-dialog="{showModel: 'ctrl.isShowStats', titleModel: 'tmp.statsDialogTitle', dialogId: 'dialogStats', fixPosition: true, lock: true, fixed: true, ext: {max: true}}">
         <div style="height: 500px; overflow-y: auto;">
             <div class="form-group">
                 <label>Filter: </label>
@@ -132,6 +133,35 @@
             </table>
         </div>
         <button class="btn" ng-click="ctrl.isShowStats = false">Close</button>
+    </script>
+
+    <script type="text/x-template"
+            ui-dialog="{showModel: 'ctrl.isShowParamsUpdate', titleModel: 'tmp.paramsDialogTitle', dialogId: 'dialogParams', fixPosition: true, lock: true, fixed: true, ext: {max: false}}">
+        <table class="table table-bordered table-striped m_top6" ng-form="tmp.addForm" style="width: 400px;">
+            <tr>
+                <th width="40%">Key</th>
+                <th width="40%">Value</th>
+                <th width="20%">
+                    <button class="btn" ng-click="tmp.paramList.push({})">Add One Param</button>
+                </th>
+            </tr>
+            <tr ng-repeat="param in tmp.paramList">
+                <td>
+                    <select ng-model="param.key" style="width: 80px;" ui-valid="r">
+                        <option value="aa" selected>aa</option>
+                        <option value="bb">bb</option>
+                    </select>
+                </td>
+                <td>
+                    <input type="text" ng-model="param.value" ui-valid="r" style="width: 120px;"/>
+                </td>
+                <td>
+                    <button class="btn" ng-click="tmp.paramList.remove(param)">-</button>
+                </td>
+            </tr>
+        </table>
+        <button class="btn btn-blue" ng-click="saveParams()">Save</button>
+        <button class="btn" ng-click="ctrl.isShowParamsUpdate = false">Close</button>
     </script>
 
 </div>

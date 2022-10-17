@@ -21,14 +21,6 @@ class RemoteUrl extends AbstractConf {
 
     Date updatedTime = new Date()
 
-    String getHost() {
-        return host
-    }
-
-    int getPort() {
-        return port
-    }
-
     // for encode in dashboard
     RemoteUrl() {
     }

@@ -1,5 +1,6 @@
 package org.segment.rpc.server.registry.zookeeper
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.zkclient.ZkClient
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
@@ -56,18 +57,16 @@ class ZookeeperRegistry implements Registry {
             // TIPS: one server only support one context
             String context = '/' + path
             // address -> host:port
+            def mapper = new ObjectMapper()
             for (address in addressList) {
                 def arr = address.split(':')
                 String host = arr[0]
                 int port = arr[1] as int
-
-                def map = readData(zkClient.readData(pathPrefix + context + '/' + address))
-                def remoteUrl = new RemoteUrl(host, port)
-                remoteUrl.context = context
-                remoteUrl.metricExportPort = map['metricExportPort'] as int
-                remoteUrl.ready = Boolean.valueOf(map['ready'])
-                remoteUrl.weight = map['weight'] as int
-                remoteUrl.updatedTime = Date.parse(DATE_FORMAT, map['updateTime'])
+                def data = zkClient.readData(pathPrefix + context + '/' + address)
+                def remoteUrl = mapper.readValue(data, RemoteUrl)
+                // overwrite optional
+                remoteUrl.host = host
+                remoteUrl.port = port
                 getList << remoteUrl
             }
         }
@@ -86,6 +85,7 @@ class ZookeeperRegistry implements Registry {
                 localOne.ready = one.ready
                 localOne.weight = one.weight
                 localOne.updatedTime = one.updatedTime
+                localOne.extend(one.params)
             } else {
                 // set ready false and trigger client do connect first and then set ready true when channel is active
                 if (initReadyFalse) {
@@ -106,22 +106,6 @@ class ZookeeperRegistry implements Registry {
                 EventHandler.instance.fire(one, EventType.OLD_REMOVED)
             }
         }
-    }
-
-    // for dashboard project
-    void clearLocal() {
-        cachedLocalList.clear()
-    }
-
-    private HashMap<String, String> readData(byte[] data) {
-        HashMap<String, String> r = [:]
-        // str -> ready=true,updateDate=**
-        def str = new String(data)
-        str.split(',').each { String one ->
-            def arr = one.split('=')
-            r[arr[0]] = arr[1]
-        }
-        r
     }
 
     private ZkClient connect() {
@@ -197,11 +181,9 @@ class ZookeeperRegistry implements Registry {
     }
 
     @Override
-    void register(RemoteUrl url) {
+    void register(RemoteUrl remoteUrl) {
         def pathPrefix = c.getString('zookeeper.path.prefix', '/segment-rpc')
-        log.info 'ready to registry {} to zookeeper with path {}{}',
-                url.toString(), pathPrefix, url.context
-        final String path = pathPrefix + url.context
+        final String path = pathPrefix + remoteUrl.context
 
         def zkClient = connect()
         if (!zkClient.exists(path)) {
@@ -209,15 +191,19 @@ class ZookeeperRegistry implements Registry {
             log.info 'created path {}', path
         }
 
-        def data = "ready=${url.ready},weight=${url.weight},metricExportPort=${url.metricExportPort}," +
-                "updateTime=${url.updatedTime.format(DATE_FORMAT)}"
-        def targetPath = path + '/' + url.toString()
+        def mapper = new ObjectMapper()
+        def data = mapper.writeValueAsBytes(remoteUrl)
+
+        def targetPath = path + '/' + remoteUrl.toString()
+        log.info 'ready to registry to zookeeper path {}', targetPath
+
         if (zkClient.exists(targetPath)) {
-            zkClient.writeData(targetPath, data.toString().bytes)
+            // overwrite, for dashboard management
+            zkClient.writeData(targetPath, data)
         } else {
-            zkClient.createEphemeral(targetPath, data.toString().bytes)
+            zkClient.createEphemeral(targetPath, data)
         }
-        log.info 'done write data {}', url.toStringView()
+        log.info 'done write data {}', remoteUrl.toStringView()
     }
 
     @Override

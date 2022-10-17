@@ -35,6 +35,19 @@ abstract class AbstractConf {
         '1' == get(key)
     }
 
+    AbstractConf put(String key, Object value) {
+        params[key] = value.toString()
+        this
+    }
+
+    AbstractConf on(String key) {
+        put(key, 1)
+    }
+
+    AbstractConf off(String key) {
+        put(key, 0)
+    }
+
     @Override
     String toString() {
         params.toString()

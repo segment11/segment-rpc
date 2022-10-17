@@ -63,7 +63,7 @@ h.group('/zk') {
         url.updatedTime = new Date()
         registry.register(url)
         [flag: true, ready: url.ready]
-    }.post('/weight/update') { req, resp ->
+    }.post('/update') { req, resp ->
         def id = req.param('id')
         assert id
 
@@ -74,9 +74,9 @@ h.group('/zk') {
         map[RpcConf.ZK_PATH_PREFIX] = one.prefix
         def registry = RpcClientHolder.instance.getRegistry(map)
 
-        RemoteUrl url = req.bodyAs(RemoteUrl)
-        url.updatedTime = new Date()
-        registry.register(url)
-        [flag: true, weight: url.weight]
+        RemoteUrl remoteUrl = req.bodyAs(RemoteUrl)
+        remoteUrl.updatedTime = new Date()
+        registry.register(remoteUrl)
+        [flag: true]
     }
 }

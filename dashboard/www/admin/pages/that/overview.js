@@ -38,7 +38,7 @@ md.controller('MainCtrl', function ($scope, $http, uiTips, uiValid) {
                 $scope.uriList = data.uriList;
                 $scope.methodList = data.methodList;
             });
-        }, 2000);
+        }, 1000);
     };
 
     // filter
@@ -64,6 +64,8 @@ md.controller('MainCtrl', function ($scope, $http, uiTips, uiValid) {
         $http.post('/dashboard/remote/stats?id=' + id, one).success(function(data){
             tmp.statsList = data.statsList;
             $scope.statsList = tmp.statsList;
+
+            $scope.tmp.statsDialogTitle = 'Server Address - ' + one.host + ':' + one.port;
             $scope.ctrl.isShowStats = true;
         });
     };
@@ -90,6 +92,34 @@ md.controller('MainCtrl', function ($scope, $http, uiTips, uiValid) {
 		}, null);
     };
 
+    $scope.updateParams = function(one){
+        tmp.editOne = one;
+        var paramList = [];
+        if(!one.params){
+            one.params = {};
+        }
+        _.each(_.keys(one.params), function(key){
+            paramList.push({key: key, value: one.params[key]});
+        });
+        $scope.tmp.paramList = paramList;
+        $scope.tmp.paramsDialogTitle = 'Server Address - ' + one.host + ':' + one.port;
+        $scope.ctrl.isShowParamsUpdate = true;
+    };
+
+    $scope.saveParams = function(){
+        var x = {};
+        _.each($scope.tmp.paramList, function(it){
+            x[it.key] = it.value;
+        });
+        tmp.editOne.params = x;
+        $http.post('/dashboard/zk/update?id=' + id, tmp.editOne).success(function(data){
+            if(data.flag){
+                uiTips.alert('Update Ok');
+                $scope.ctrl.isShowParamsUpdate = false;
+            }
+        });
+    };
+
     $scope.updateWeight = function(one){
         uiTips.prompt('Update weight for - ' + one.host + ':' + one.port, function (val) {
             if(!(/^[\-\+]?([0-9]+)$/.test(val))){
@@ -101,10 +131,9 @@ md.controller('MainCtrl', function ($scope, $http, uiTips, uiValid) {
                 uiTips.alert('weight number must >= 0 and <= 10 - ' + val);
                 return;
             }
-			$http.post('/dashboard/zk/weight/update?id=' + id, one).success(function(data){
+			$http.post('/dashboard/zk/update?id=' + id, one).success(function(data){
 				if(data.flag){
-				    uiTips.alert('Done - Now Weight : ' + data.weight);
-				    one.weight = one.weight;
+				    uiTips.alert('Done - Now Weight : ' + one.weight);
 				}
 			});
         }, one.weight);

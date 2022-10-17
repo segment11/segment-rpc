@@ -69,6 +69,12 @@ class RpcServer {
         remoteUrl.ready = Boolean.valueOf(c.getString('server.ready', 'true'))
         remoteUrl.weight = c.getInt('server.loadbalance.weight', RemoteUrl.DEFAULT_WEIGHT)
 
+        // set other parameter value for client
+        def pre = 'server.remote.params.'
+        c.params.findAll { it.key.startsWith(pre) }.each {
+            remoteUrl.put(it.key[pre.length()..-1], it.value)
+        }
+
         addDefaultHandler()
         initThreadPoolExecutor()
 
