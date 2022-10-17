@@ -21,7 +21,6 @@ import org.segment.rpc.invoke.MethodInvokeHandler
 import org.segment.rpc.invoke.ProxyCreator
 import org.segment.rpc.server.codec.Decoder
 import org.segment.rpc.server.codec.Encoder
-import org.segment.rpc.server.codec.StatsHolder
 import org.segment.rpc.server.handler.ChainHandler
 import org.segment.rpc.server.handler.Resp
 import org.segment.rpc.server.handler.RpcHandler
@@ -29,6 +28,7 @@ import org.segment.rpc.server.handler.StandardThreadExecutor
 import org.segment.rpc.server.provider.DefaultProvider
 import org.segment.rpc.server.registry.Registry
 import org.segment.rpc.server.registry.RemoteUrl
+import org.segment.rpc.stats.StatsHolder
 
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -124,7 +124,9 @@ class RpcServer {
 
     void start() {
         if (c.isOn('server.metric.export')) {
-            DefaultExports.initialize()
+            if (c.isOn('server.metric.jvm.export')) {
+                DefaultExports.initialize()
+            }
             int metricServerPort = c.getInt('server.metric.listen.port', 8878)
             metricsServer = new HTTPServer(remoteUrl.host, metricServerPort)
             log.info('start metric server {}:{}', remoteUrl.host, metricServerPort)

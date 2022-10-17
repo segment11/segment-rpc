@@ -179,7 +179,7 @@ class RpcClient {
 
             @Override
             def handle(RemoteUrl remoteUrl) {
-                int needCreateChannelNumber = remoteUrl.getInt('client.channel.number', 5)
+                int needCreateChannelNumber = remoteUrl.getInt('client.channel.number.per.server', 2)
                 for (int i = 0; i < needCreateChannelNumber; i++) {
                     def newOne = RpcClient.this.doConnect(remoteUrl)
                     if (newOne) {

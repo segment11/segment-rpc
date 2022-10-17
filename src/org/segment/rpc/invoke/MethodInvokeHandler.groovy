@@ -49,7 +49,7 @@ class MethodInvokeHandler extends AbstractHandler {
             emptyNumberGauge.labels(remoteUrl.toString(), req.context(), meta.clazz, meta.method).set(number as double)
 
             log.warn('method not found {}', meta.toString())
-            return Resp.fail('method not found', Resp.Status.EMPTY)
+            return Resp.fail('method not found', Resp.Status.NOT_FOUND)
         }
 
         def timer = cost.labels(remoteUrl.toString(), req.context(), meta.clazz, meta.method).startTimer()

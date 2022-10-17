@@ -4,6 +4,8 @@ import groovy.util.logging.Slf4j
 import io.prometheus.client.Gauge
 import io.prometheus.client.Summary
 import org.segment.rpc.server.registry.RemoteUrl
+import org.segment.rpc.stats.CounterInMinute
+import org.segment.rpc.stats.StatsType
 
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.regex.Pattern
@@ -41,18 +43,29 @@ class ChainHandler implements Handler {
             handleListNoReturn(req, beforeList)
             def resp = handleList(req, list)
             handleListNoReturn(req, afterList)
+
+            if (resp == null || resp.status == Resp.Status.NOT_FOUND) {
+                CounterInMinute.instance.increaseAndGet(1, StatsType.RESP_404)
+            }
+            if (resp != null && resp.status == Resp.Status.INTERNAL_EX) {
+                CounterInMinute.instance.increaseAndGet(1, StatsType.RESP_500)
+            }
             return resp
         } catch (HaltEx haltEx) {
+            CounterInMinute.instance.increaseAndGet(1, StatsType.RESP_500)
             return Resp.fail(haltEx.message, haltEx.status)
         } catch (Throwable t) {
+            CounterInMinute.instance.increaseAndGet(1, StatsType.RESP_500)
             if (exceptionHandler) {
                 try {
                     return exceptionHandler.handle(req, t)
                 } catch (Exception e2) {
                     log.error('exception handle error', e2)
+                    return Resp.fail('exception handle error', e2.message)
                 }
             } else {
-                throw t
+                log.error('exception handle error', t)
+                return Resp.fail('exception handle error', t.message)
             }
         } finally {
             try {

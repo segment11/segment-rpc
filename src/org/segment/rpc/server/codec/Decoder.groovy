@@ -10,6 +10,8 @@ import org.segment.rpc.server.handler.Resp
 import org.segment.rpc.server.serialize.CompressFactory
 import org.segment.rpc.server.serialize.Serializer
 import org.segment.rpc.server.serialize.SerializerFactory
+import org.segment.rpc.stats.CounterInMinute
+import org.segment.rpc.stats.StatsType
 
 import static org.segment.rpc.server.codec.Encoder.*
 import static org.segment.rpc.server.codec.RpcMessage.CompressType
@@ -18,8 +20,6 @@ import static org.segment.rpc.server.codec.RpcMessage.MessageType
 @CompileStatic
 @Slf4j
 class Decoder extends LengthFieldBasedFrameDecoder {
-    private Stats stats = StatsHolder.instance.decoderStats
-
     Decoder() {
         // + 1(version byte length 1)
         super(MAX_FRAME_LENGTH,
@@ -56,7 +56,7 @@ class Decoder extends LengthFieldBasedFrameDecoder {
         checkVersion(frame)
 
         int fullLen = frame.readInt()
-        stats.add(fullLen)
+        CounterInMinute.instance.increaseAndGet(fullLen as long, StatsType.DECODE_LENGTH)
 
         byte messageType = frame.readByte()
         byte serializeType = frame.readByte()

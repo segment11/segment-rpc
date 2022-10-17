@@ -6,6 +6,8 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.MessageToByteEncoder
 import org.segment.rpc.server.serialize.CompressFactory
 import org.segment.rpc.server.serialize.SerializerFactory
+import org.segment.rpc.stats.CounterInMinute
+import org.segment.rpc.stats.StatsType
 
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -34,8 +36,6 @@ class Encoder extends MessageToByteEncoder<RpcMessage> {
 
     private AtomicInteger requestIdGenerator = new AtomicInteger(0)
 
-    private Stats stats = StatsHolder.instance.encoderStats
-
     @Override
     protected void encode(ChannelHandlerContext ctx, RpcMessage message, ByteBuf out) throws Exception {
         out.writeBytes MAGIC_NUMBER
@@ -62,7 +62,7 @@ class Encoder extends MessageToByteEncoder<RpcMessage> {
             }
         }
 
-        stats.add(fullLen)
+        CounterInMinute.instance.increaseAndGet(fullLen as long, StatsType.ENCODE_LENGTH)
 
         // fully len set
         int writeIndex = out.writerIndex()

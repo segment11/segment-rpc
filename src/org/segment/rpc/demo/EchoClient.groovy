@@ -28,12 +28,17 @@ println say == say2
 println say.hi('kerry')
 println say2.hi('kerry')
 
-def resp = client.sendSync(new Req('/rpc/v1/echo', "hi kerry".toString()))
+def body = "hi kerry".toString()
+def resp = client.sendSync(new Req('/rpc/v1/echo', body))
 println '' + resp.status + ':' + resp?.body
 
 // not found
-def respEmpty = client.sendSync(new Req('/rpc/v2/echo', "hi kerry".toString()))
+def respEmpty = client.sendSync(new Req('/rpc/v2/echo', body))
 println '' + respEmpty.status + ':' + respEmpty?.body
+
+// exception
+def respEx = client.sendSync(new Req('/rpc/v1/ex', body))
+println '' + respEx.status + ':' + respEx?.body
 
 int threadNumber = 10
 int loopTimes = 10

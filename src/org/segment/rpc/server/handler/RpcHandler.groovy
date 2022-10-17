@@ -11,6 +11,8 @@ import org.segment.rpc.manage.ClientChannelInfo
 import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.registry.RemoteUrl
+import org.segment.rpc.stats.CounterInMinute
+import org.segment.rpc.stats.StatsType
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.RejectedExecutionException
@@ -72,6 +74,8 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
                 writeAndFlush(ctx, result)
             }
         } catch (RejectedExecutionException e) {
+            CounterInMinute.instance.increaseAndGet(1, StatsType.REJECT_NUMBER)
+
             if (!msg.isPingPong()) {
                 Req req = msg.data as Req
                 log.warn('thread pool reject, request id {}', req.uuid)
