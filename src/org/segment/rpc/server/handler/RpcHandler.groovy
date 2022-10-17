@@ -53,7 +53,7 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RpcMessage msg) throws Exception {
         try {
-            executor.submit {
+            executor.execute {
                 RpcMessage result = msg.response()
                 if (msg.messageType == RpcMessage.MessageType.PING) {
                     result.data = Encoder.PONG

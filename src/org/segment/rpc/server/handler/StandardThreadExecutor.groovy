@@ -88,6 +88,7 @@ class StandardThreadExecutor extends ThreadPoolExecutor {
     }
 }
 
+@CompileStatic
 class ExecutorQueue extends LinkedTransferQueue<Runnable> {
     StandardThreadExecutor threadPoolExecutor
 
@@ -99,25 +100,33 @@ class ExecutorQueue extends LinkedTransferQueue<Runnable> {
         this.threadPoolExecutor = threadPoolExecutor
     }
 
+    // from tomcat
     boolean force(Runnable o) {
         if (threadPoolExecutor.isShutdown()) {
             throw new RejectedExecutionException("Executor not running, can't force a command into the queue")
         }
+        // forces the item onto the queue, to be used if the task is rejected
         return super.offer(o)
     }
 
     boolean offer(Runnable o) {
         int poolSize = threadPoolExecutor.getPoolSize()
 
+        // we are maxed out on threads, simply queue the object
         if (poolSize == threadPoolExecutor.getMaximumPoolSize()) {
             return super.offer(o)
         }
+        // we have idle threads, just add it to the queue
+        // note that we don't use getActiveCount(), see BZ 49730
         if (threadPoolExecutor.getSubmittedTasksCount() <= poolSize) {
             return super.offer(o)
         }
+        // if we have less threads than maximum force creation of a new
+        // thread
         if (poolSize < threadPoolExecutor.getMaximumPoolSize()) {
             return false
         }
+        // if we reached here, we need to add it to the queue
         return super.offer(o)
     }
 }
