@@ -8,16 +8,9 @@ class RpcConf extends AbstractConf {
     final static String ZK_CONNECT_STRING = 'zookeeper.connect.string'
     final static String ZK_PATH_PREFIX = 'zookeeper.path.prefix'
 
-    final static String CONF_FILE_NAME = '/conf.properties'
+    final static String CLIENT_CHANNEL_NUMBER_PER_SERVER = 'client.channel.number.per.server'
 
-    RpcConf extend(Map<String, Object> params = null) {
-        if (params) {
-            for (entry in params.entrySet()) {
-                this.params[entry.key] = entry.value.toString()
-            }
-        }
-        this
-    }
+    final static String CONF_FILE_NAME = '/conf.properties'
 
     private static volatile RpcConf localOne
 

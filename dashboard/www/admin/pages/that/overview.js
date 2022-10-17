@@ -1,6 +1,6 @@
 var md = angular.module('module_that/overview', ['base']);
 md.controller('MainCtrl', function ($scope, $http, uiTips, uiValid) {
-    $scope.tmp = {};
+    $scope.tmp = {statsKeyword: ''};
     $scope.ctrl = {};
 
     var tmp = {};
@@ -8,6 +8,7 @@ md.controller('MainCtrl', function ($scope, $http, uiTips, uiValid) {
     var Page = window.Page;
     var params = Page.params();
 
+    // zk define row id
     var id = params.id;
     $scope.tmp.name = params.name;
     $scope.tmp.des = params.des;
@@ -32,11 +33,50 @@ md.controller('MainCtrl', function ($scope, $http, uiTips, uiValid) {
         $scope.list = tmp.r[$scope.tmp.context];
 
         var p = { id: id, context: $scope.tmp.context };
-        $http.get('/dashboard/remote/overview', { params: p }).success(function (data) {
-            $scope.uriList = data.uriList;
-            $scope.methodList = data.methodList;
+        setTimeout(function(){
+            $http.get('/dashboard/remote/overview', { params: p }).success(function (data) {
+                $scope.uriList = data.uriList;
+                $scope.methodList = data.methodList;
+            });
+        }, 2000);
+    };
+
+    // filter
+    $scope.queryLl = function(){
+        var keyword = $scope.tmp.keyword;
+        if(!keyword){
+            $scope.onContextChoose();
+            return;
+        }
+
+        $scope.list = _.filter($scope.list, function(it){
+            return it.host.contains(keyword);
+        });
+        $scope.uriList = _.filter($scope.uriList, function(it){
+            return it.contains(keyword);
+        });
+        $scope.methodList = _.filter($scope.methodList, function(it){
+            return it.clazz.contains(keyword) || it.method.contains(keyword);
         });
     };
+
+    $scope.showMetrics = function(one){
+        $http.post('/dashboard/remote/stats?id=' + id, one).success(function(data){
+            tmp.statsList = data.statsList;
+            $scope.statsList = tmp.statsList;
+            $scope.ctrl.isShowStats = true;
+        });
+    };
+
+    $scope.$watch('tmp.statsKeyword', function(val){
+        if(!$scope.statsList){
+            $scope.statsList = tmp.statsList;
+        }else{
+            $scope.statsList = _.filter(tmp.statsList, function(one){
+                return one.key.contains(val);
+            });
+        }
+    });
 
     $scope.changeReady = function(one){
 		uiTips.confirm('Sure Switch Ready - ' + one.host + ':' + one.port +

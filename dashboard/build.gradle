@@ -28,6 +28,7 @@ sourceSets {
 dependencies {
     compile 'org.slf4j:slf4j-api:1.7.30'
     compile 'org.codehaus.groovy:groovy-all:2.4.19'
+    compile group: 'com.github.kevinsawicki', name: 'http-request', version: '6.0'
 
     compile project(':segment-rpc')
     compile project(':segmentweb')

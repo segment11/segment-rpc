@@ -2,8 +2,8 @@ package ctrl
 
 import model.ZkClusterDTO
 import org.segment.rpc.common.RpcConf
+import org.segment.rpc.manage.RpcClientHolder
 import org.segment.rpc.server.registry.RemoteUrl
-import org.segment.rpc.server.registry.zookeeper.ZookeeperRegistry
 import org.segment.web.handler.ChainHandler
 
 def h = ChainHandler.instance
@@ -38,12 +38,9 @@ h.group('/zk') {
         Map map = [:]
         map[RpcConf.ZK_CONNECT_STRING] = one.connectString
         map[RpcConf.ZK_PATH_PREFIX] = one.prefix
-        def c = new RpcConf().extend(map)
 
-        def registry = new ZookeeperRegistry()
-        registry.init(c)
-        registry.clearLocal()
-        registry.refreshToLocal()
+        def registry = RpcClientHolder.instance.getRegistry(map)
+        registry.refreshToLocal(false)
 
         def list = registry.cachedLocalList
         def r = list.groupBy {
@@ -59,10 +56,7 @@ h.group('/zk') {
         Map map = [:]
         map[RpcConf.ZK_CONNECT_STRING] = one.connectString
         map[RpcConf.ZK_PATH_PREFIX] = one.prefix
-        def c = new RpcConf().extend(map)
-
-        def registry = new ZookeeperRegistry()
-        registry.init(c)
+        def registry = RpcClientHolder.instance.getRegistry(map)
 
         RemoteUrl url = req.bodyAs(RemoteUrl)
         url.ready = !url.ready
@@ -78,10 +72,7 @@ h.group('/zk') {
         Map map = [:]
         map[RpcConf.ZK_CONNECT_STRING] = one.connectString
         map[RpcConf.ZK_PATH_PREFIX] = one.prefix
-        def c = new RpcConf().extend(map)
-
-        def registry = new ZookeeperRegistry()
-        registry.init(c)
+        def registry = RpcClientHolder.instance.getRegistry(map)
 
         RemoteUrl url = req.bodyAs(RemoteUrl)
         url.updatedTime = new Date()

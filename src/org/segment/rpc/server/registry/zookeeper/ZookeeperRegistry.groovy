@@ -30,7 +30,7 @@ class ZookeeperRegistry implements Registry {
 
     private AtomicInteger count = new AtomicInteger(0)
 
-    void refreshToLocal() {
+    void refreshToLocal(boolean initReadyFalse = true) {
         def zkClient = connect()
         def pathPrefix = c.getString('zookeeper.path.prefix', '/segment-rpc')
 
@@ -88,7 +88,9 @@ class ZookeeperRegistry implements Registry {
                 localOne.updatedTime = one.updatedTime
             } else {
                 // set ready false and trigger client do connect first and then set ready true when channel is active
-                one.ready = false
+                if (initReadyFalse) {
+                    one.ready = false
+                }
                 cachedLocalList << one
                 log.info 'added new one - ' + one.toStringView()
                 EventHandler.instance.fire(one, EventType.NEW_ADDED)

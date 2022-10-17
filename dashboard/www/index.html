@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<!-- Meta -->
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<!-- End of Meta -->
+
+	<!-- Page title -->
+	<title>Segment RPC Dashboard Login</title>
+	<!-- End of Page title -->
+
+	<!-- Libraries -->
+	<link type="text/css" href="/admin/assets/login.css" rel="stylesheet" />
+</head>
+
+<body>
+	<div id="container">
+		<div class="logo">
+			<a href="#"><img src="/admin/assets/logo.png" alt="" /></a>
+		</div>
+		<div id="box">
+			<form method="post" action="/dashboard/login" onsubmit="return check()">
+				<p class="main">
+					<label>User: </label>
+					<input id="user" name="user" placeholder="Input your user name" />
+					<label>Password: </label>
+					<input id="password" type="password" name="password" placeholder="Input your password" />
+				</p>
+
+				<p class="space">
+					<input type="submit" value="Login" class="login" />
+				</p>
+			</form>
+		</div>
+		<p id="warn-tips" style="display: none; color: red; font-size: 12px; margin: 4px;">user or password not match</p>
+	</div>
+
+</body>
+
+<script src="/m/ng-ext/jq.js"></script>
+
+<script>
+	function check() {
+		var user = document.getElementById('user').value;
+		var password = document.getElementById('password').value;
+		if (!user || !password) {
+			alert('Please input user/password');
+			return false;
+		}
+		return true;
+	}
+
+	$(function(){
+		if(document.location.href.indexOf('error') != -1)
+			$('#warn-tips').show();
+	});
+</script>
+
+</html>

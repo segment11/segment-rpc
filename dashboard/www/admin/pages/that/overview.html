@@ -16,6 +16,9 @@
                                 style="width: 80px;" ng-change="onContextChoose()">
                             <option value="" selected>--/--</option>
                         </select>
+
+                        <input type="text" ng-model="tmp.keyword" placeholder="Input Keyword"/>
+                        <button class="btn" ng-click="queryLl()">Query</button>
                     </div>
 
                     <ul class="nav nav-tabs" ui-tabs="{}">
@@ -36,7 +39,7 @@
                                 <th></th>
                             </tr>
                             <tr ng-repeat="one in list">
-                                <td>{{one.host}}:{{one.port}}</td>
+                                <td style="text-align: left;">{{one.host}}:{{one.port}}</td>
                                 <td>
                                     <span class="bg-info">{{one.ready}}</span>
                                     <br/>
@@ -75,7 +78,7 @@
                                 <th></th>
                             </tr>
                             <tr ng-repeat="one in uriList">
-                                <td>{{one}}</td>
+                                <td style="text-align: left;">{{one}}</td>
                                 <td class="opts">
                                     <button class="btn" ng-click="viewUriStats(one)">Stats</button>
                                 </td>
@@ -93,9 +96,9 @@
                                 <th></th>
                             </tr>
                             <tr ng-repeat="one in methodList">
-                                <td>{{one.clazz}}</td>
-                                <td>{{one.method}}</td>
-                                <td>{{one.paramTypes}}</td>
+                                <td style="text-align: left;">{{one.clazz}}</td>
+                                <td style="text-align: left;">{{one.method}}</td>
+                                <td style="text-align: left;">{{one.paramTypes}}</td>
                                 <td class="opts">
                                     <button class="btn" ng-click="viewMethodStats(one)">Stats</button>
                                 </td>
@@ -109,5 +112,26 @@
         </div><!-- /.row-fluid -->
 
     </div>
+
+    <script type="text/x-template"
+            ui-dialog="{showModel: 'ctrl.isShowStats', title: 'Stats', dialogId: 'dialogStats', lock: true, fixed: true, ext: {max: false}}">
+        <div style="height: 500px; overflow-y: auto;">
+            <div class="form-group">
+                <label>Filter: </label>
+                <input type="text" ng-model="tmp.statsKeyword" placeholder="Input Keyword"/>
+            </div>
+            <table class="table table-bordered table-striped m_top6" style="width: 600px;">
+                <tr>
+                    <th width="70%">Key</th>
+                    <th>Value</th>
+                </tr>
+                <tr ng-repeat="one in statsList">
+                    <td style="text-align: left;">{{one.key}}</td>
+                    <td style="text-align: left;">{{one.value}}</td>
+                </tr>
+            </table>
+        </div>
+        <button class="btn" ng-click="ctrl.isShowStats = false">Close</button>
+    </script>
 
 </div>

@@ -122,4 +122,8 @@ class TestBeanLoad extends Specification {
 ```
 
 ## dashboard overview: 
+### update one server's load balance weight
 ![alt](dashboard/segment_rpc_dashboard_update_weight.png) 
+
+### view one server's stats
+![alt](dashboard/segment_rpc_dashboard_view_stats.png) 

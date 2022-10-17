@@ -355,7 +355,7 @@ $(function () {
                 $('.vtip').remove();
                 if (403 == response.status) {
                     setTimeout(function () {
-                        document.location.href = '/admin/login.html'
+                        document.location.href = '/index.html'
                     }, 500);
                 } else if (500 == response.status) {
                     uiTips.alert(response.data);

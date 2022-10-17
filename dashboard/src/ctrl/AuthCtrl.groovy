@@ -16,7 +16,7 @@ h.post('/login') { req, resp ->
 
     def c = Conf.instance
     if (user != c.get('admin.user') || password != c.get('admin.password')) {
-        resp.halt(403, 'user or password not match')
+        resp.redirect('/index.html?error=1')
     }
 
     def u = [name: user]
@@ -30,7 +30,7 @@ h.get('/login/user') { req, resp ->
 
 h.get('/logout') { req, resp ->
     req.removeSession('user')
-    resp.redirect('/admin/login.html')
+    resp.redirect('/index.html')
 }
 
 h.before('/**') { req, resp ->

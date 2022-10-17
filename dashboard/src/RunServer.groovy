@@ -30,6 +30,7 @@ if (!tableNameList.contains('ZK_CLUSTER')) {
     new File(c.projectPath('/init_h2.sql')).text.split(';').each {
         try {
             d.exe(it)
+            log.info('done created table - ZK_CLUSTER')
         } catch (Exception e) {
             log.error('create table fail', e)
         }
