@@ -21,7 +21,7 @@ h.post('/login') { req, resp ->
 
     def u = [name: user]
     req.session('user', u)
-    resp.redirect('/admin/index.html')
+    resp.redirect('/admin/index.html#/page/that_zk')
 }
 
 h.get('/login/user') { req, resp ->
