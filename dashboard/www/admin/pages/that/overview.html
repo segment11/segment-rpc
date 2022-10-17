@@ -147,13 +147,15 @@
             </tr>
             <tr ng-repeat="param in tmp.paramList">
                 <td>
-                    <select ng-model="param.key" style="width: 80px;" ui-valid="r">
-                        <option value="aa" selected>aa</option>
-                        <option value="bb">bb</option>
+                    <select ng-model="param.key" style="width: 200px;" ui-valid="r"
+                            ng-change="changeParamValidRule(param.key)">
+                        <option value="test.key" selected>just for test</option>
+                        <option value="client.send.retries" selected>retries</option>
+                        <option value="client.channel.number.per.server" selected>channel number client -> 1 server</option>
                     </select>
                 </td>
                 <td>
-                    <input type="text" ng-model="param.value" ui-valid="r" style="width: 120px;"/>
+                    <input type="text" ng-model="param.value" ui-valid="{{param.validRule}}" style="width: 120px;"/>
                 </td>
                 <td>
                     <button class="btn" ng-click="tmp.paramList.remove(param)">-</button>

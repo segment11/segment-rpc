@@ -138,6 +138,23 @@ class RpcClient {
             throw new IllegalStateException('no remote server found while request uri context - ' + req.context())
         }
 
+        int retries = remoteUrl.getInt('client.send.retries', 0)
+        for (int i = 0; i <= retries; i++) {
+            try {
+                return sendOnce(remoteUrl, req)
+            } catch (RuntimeException e) {
+                log.warn('send request error - {}, retries: {}, message {}', remoteUrl, i, e.message)
+                if (i == retries) {
+                    throw e
+                }
+            }
+        }
+
+        log.warn('why??? server: {} uri: {}', remoteUrl, req.uri)
+        throw new RuntimeException('send request error')
+    }
+
+    private CompletableFuture<Resp> sendOnce(RemoteUrl remoteUrl, Req req) {
         def channel = ChannelHolder.instance.get(remoteUrl)
         // will never happen
         // because when registry found new server list, do connect and add to channel holder already
@@ -193,8 +210,8 @@ class RpcClient {
 
             @Override
             def handle(RemoteUrl remoteUrl) {
-                // use local or remote ? todo
-                remoteUrl.extend(c.params, false)
+                // use local or remote ?
+//                remoteUrl.extend(c.params, false)
                 int needCreateChannelNumber = remoteUrl.getInt(RpcConf.CLIENT_CHANNEL_NUMBER_PER_SERVER, 2)
                 for (int i = 0; i < needCreateChannelNumber; i++) {
                     def newOne = RpcClient.this.doConnect(remoteUrl)
