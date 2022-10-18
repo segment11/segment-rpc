@@ -68,7 +68,7 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
                         resp.uuid = req.uuid
                         result.data = resp
                     } else {
-                        def empty = Resp.empty()
+                        def empty = new Resp(status: Resp.Status.NOT_FOUND)
                         empty.uuid = req.uuid
                         result.data = empty
                     }

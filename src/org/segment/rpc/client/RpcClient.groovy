@@ -128,6 +128,7 @@ class RpcClient {
     private final String NEED_RETRY_HEADER = 'needRetry'
 
     Resp sendSync(Req req, long timeoutMillis = 0) {
+        // not request timeout
         long timeoutMillisDefault = c.getInt('client.get.response.timeout.millis', 2000)
         long ms = timeoutMillis == 0 ? timeoutMillisDefault : timeoutMillis
 
@@ -201,13 +202,13 @@ class RpcClient {
 
         channel.writeAndFlush(msg).addListener({ ChannelFuture future ->
             if (!future.isSuccess()) {
-                log.error 'send request error - ' + remoteUrl, future.cause()
+                log.error 'write and flush request error - ' + remoteUrl, future.cause()
                 resultFuture.completeExceptionally(future.cause())
                 future.channel().close()
             } else {
                 if (log.isDebugEnabled()) {
                     // data may be too long, to string will cost too much time
-                    log.debug('send request ok {}', msg.data)
+                    log.debug('write and flush request ok {}', msg.data)
                 }
             }
         } as ChannelFutureListener)

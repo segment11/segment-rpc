@@ -3,7 +3,7 @@ package org.segment.rpc.server.handler
 import groovy.transform.CompileStatic
 
 @CompileStatic
-class Resp extends HeaderSupport implements Serializable {
+class Resp implements Serializable {
     @CompileStatic
     static enum Status {
         OK(200), NOT_FOUND(404), INTERNAL_EX(500)
@@ -16,10 +16,6 @@ class Resp extends HeaderSupport implements Serializable {
     }
 
     Resp() {}
-
-    static Resp empty() {
-        new Resp(status: Status.NOT_FOUND)
-    }
 
     static Resp one(Object body = null) {
         def resp = new Resp()
