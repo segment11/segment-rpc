@@ -10,6 +10,8 @@ class Req extends HeaderSupport implements Serializable {
     String uri
     Object body
 
+    int retries = 0
+
     boolean isMethodInvoke = false
 
     Req() {}

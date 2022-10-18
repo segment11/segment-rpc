@@ -20,7 +20,10 @@ class ProcessFuture {
     void complete(Resp resp) {
         def future = items.remove(resp.uuid)
         if (!future) {
-            throw new IllegalStateException('resp get no process future as uuid: ' + resp.uuid)
+            // timeout removed already
+            log.warn('resp get no process future timeout ? uuid {}', resp.uuid)
+//            throw new IllegalStateException('resp get no process future as uuid: ' + resp.uuid)
+            return
         }
         future.complete(resp)
     }

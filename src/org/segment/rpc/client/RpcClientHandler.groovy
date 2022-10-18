@@ -95,6 +95,6 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
     @Override
     void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
         log.error('client handle exception - ' + ctx.channel().remoteAddress(), cause)
-        ctx.close()
+        // do not close channel
     }
 }

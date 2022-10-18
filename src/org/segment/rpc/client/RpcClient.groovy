@@ -22,6 +22,7 @@ import org.segment.rpc.server.serialize.Serializer
 
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 @CompileStatic
 @Slf4j
@@ -124,8 +125,26 @@ class RpcClient {
         null
     }
 
-    Resp sendSync(Req req) {
-        send(req).get()
+    private final String NEED_RETRY_HEADER = 'needRetry'
+
+    Resp sendSync(Req req, long timeoutMillis = 0) {
+        long timeoutMillisDefault = c.getInt('client.get.response.timeout.millis', 2000)
+        long ms = timeoutMillis == 0 ? timeoutMillisDefault : timeoutMillis
+
+        def future = send(req)
+        try {
+            return future.get(ms, TimeUnit.MILLISECONDS)
+        } catch (TimeoutException e) {
+            log.warn('send request timeout - uri {}, retries {}, timeoutMs {}', req.uri, req.retries, ms)
+            ProcessFuture.instance.complete(new Resp(status: Resp.Status.INTERNAL_EX, uuid: req.uuid))
+
+            boolean needRetry = Boolean.valueOf(req.header(NEED_RETRY_HEADER))
+            if (needRetry) {
+                return sendSync(req, ms)
+            } else {
+                throw e
+            }
+        }
     }
 
     CompletableFuture<Resp> send(Req req) {
@@ -139,12 +158,16 @@ class RpcClient {
         }
 
         int retries = remoteUrl.getInt('client.send.retries', 0)
-        for (int i = 0; i <= retries; i++) {
+        for (int i = req.retries; i <= retries; i++) {
+            // for timeout retry
+            req.retries = i + 1
+            boolean needRetry = i < retries
+            req.header(NEED_RETRY_HEADER, needRetry.toString())
             try {
                 return sendOnce(remoteUrl, req)
             } catch (RuntimeException e) {
                 log.warn('send request error - {}, retries: {}, message {}', remoteUrl, i, e.message)
-                if (i == retries) {
+                if (!needRetry) {
                     throw e
                 }
             }

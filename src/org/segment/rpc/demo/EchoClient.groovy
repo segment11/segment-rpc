@@ -5,7 +5,7 @@ import org.segment.rpc.common.ConsoleReader
 import org.segment.rpc.invoke.ProxyCreator
 import org.segment.rpc.server.handler.Req
 
-import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeoutException
 
 def client = new RpcClient()
 
@@ -40,10 +40,16 @@ println '' + respEmpty.status + ':' + respEmpty?.body
 def respEx = client.sendSync(new Req('/rpc/v1/ex', body))
 println '' + respEx.status + ':' + respEx?.body
 
+// timeout
+try {
+    def respTimeout = client.sendSync(new Req('/rpc/v1/timeout', body))
+    println '' + respTimeout.status + ':' + respTimeout?.body
+} catch (TimeoutException e) {
+    println 'timeout and ignore'
+}
+
 int threadNumber = 10
 int loopTimes = 10
-
-def latch = new CountDownLatch(threadNumber)
 
 threadNumber.times { i ->
     Thread.start {
@@ -55,10 +61,5 @@ threadNumber.times { i ->
             long ms = 10 + new Random().nextInt(10)
             Thread.sleep(ms)
         }
-        latch.countDown()
     }
 }
-
-latch.await()
-println 'requests sent done'
-

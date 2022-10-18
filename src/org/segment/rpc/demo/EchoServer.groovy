@@ -21,6 +21,9 @@ h.context('/rpc').group('/v1') {
         Resp.one('ok - ' + req.body)
     }.get('/ex') { req ->
         Resp.fail('error')
+    }.get('/timeout') { req ->
+        Thread.sleep(3000)
+        Resp.one('ok - ' + req.body)
     }
 }
 
