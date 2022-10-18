@@ -9,22 +9,26 @@ import java.util.concurrent.atomic.AtomicLong
 @Singleton
 class CounterInMinute {
     // save last minute number, like 404/505 count
-    private Map<String, AtomicLong> cache = new ConcurrentHashMap<>()
+    private Map<String, AtomicLong> cacheInMinute = new ConcurrentHashMap<>()
+    private Map<String, Integer> cacheOne = new ConcurrentHashMap<>()
 
-    private String currentMinute(StatsType... types) {
-        int minute = (System.currentTimeMillis() / 1000 / 60).intValue()
-        String[] r = new String[types.length + 1]
-        r[0] = minute.toString()
-        for (int i = 0; i < types.length; i++) {
-            r[i + 1] = types[i].name
-        }
-        r.join(',')
+    void setOne(int value, StatsType type) {
+        cacheOne[type.name] = value
     }
 
-    long increaseAndGet(long add, StatsType... types) {
-        String key = currentMinute(types)
+    int getOne(StatsType type) {
+        cacheOne[type.name] ?: 0
+    }
+
+    private String addCurrentMinutePrefix(StatsType type) {
+        int minute = (System.currentTimeMillis() / 1000 / 60).intValue()
+        "${minute},${type.name}"
+    }
+
+    long increaseAndGet(long add, StatsType type) {
+        String key = addCurrentMinutePrefix(type)
         AtomicLong value = new AtomicLong(add)
-        def old = cache.putIfAbsent(key, value)
+        def old = cacheInMinute.putIfAbsent(key, value)
         if (old != null) {
             return old.addAndGet(add)
         } else {
@@ -32,9 +36,23 @@ class CounterInMinute {
         }
     }
 
-    long get(StatsType... types) {
-        def old = cache.get(currentMinute(types))
+    long getCounter(StatsType type) {
+        def old = cacheInMinute.get(addCurrentMinutePrefix(type))
         old == null ? 0 : old.get()
+    }
+
+    // clear passed 2 minute cached stats
+    void clearAllOldCounter() {
+        int currentMinute = (System.currentTimeMillis() / 1000 / 60 - 2).intValue()
+        def it = cacheInMinute.entrySet().iterator()
+        while (it.hasNext()) {
+            def entry = it.next()
+            def key = entry.key
+            def minute = key.split(',')[0] as int
+            if (minute < currentMinute) {
+                it.remove()
+            }
+        }
     }
 
 }

@@ -21,6 +21,7 @@ class StatsHolder {
     private Gauge resp404
     private Gauge resp500
 
+    private Gauge queueSize
     private Gauge rejectNumber
 
     private RemoteUrl remoteUrl
@@ -45,19 +46,30 @@ class StatsHolder {
                 help('resp_500').
                 labelNames('address').register()
 
+        queueSize = Gauge.build().name('queue_size').
+                help('handler_executor_pool_queue_size').labelNames('address').register()
+
         rejectNumber = Gauge.build().name('reject_number').
                 help('handler_executor_pool_reject_number').labelNames('address').register()
 
+        long interval = 10
+        def now = new Date()
+        int sec = now.seconds
+        long delaySeconds = interval - (sec % interval)
+
         scheduler = Executors.newSingleThreadScheduledExecutor()
         scheduler.scheduleWithFixedDelay({
-            encodeLengthLastMin.labels(address()).set(counter.get(StatsType.ENCODE_LENGTH))
-            decodeLengthLastMin.labels(address()).set(counter.get(StatsType.DECODE_LENGTH))
+            encodeLengthLastMin.labels(address()).set(counter.getCounter(StatsType.ENCODE_LENGTH))
+            decodeLengthLastMin.labels(address()).set(counter.getCounter(StatsType.DECODE_LENGTH))
 
-            resp404.labels(address()).set(counter.get(StatsType.RESP_404))
-            resp500.labels(address()).set(counter.get(StatsType.RESP_500))
+            resp404.labels(address()).set(counter.getCounter(StatsType.RESP_404))
+            resp500.labels(address()).set(counter.getCounter(StatsType.RESP_500))
 
-            rejectNumber.labels(address()).set(counter.get(StatsType.REJECT_NUMBER))
-        }, 0, 10, TimeUnit.SECONDS)
+            queueSize.labels(address()).set(counter.getOne(StatsType.QUEUE_SIZE))
+            rejectNumber.labels(address()).set(counter.getCounter(StatsType.REJECT_NUMBER))
+
+            counter.clearAllOldCounter()
+        }, delaySeconds, interval, TimeUnit.SECONDS)
     }
 
     private String address() {

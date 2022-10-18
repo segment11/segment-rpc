@@ -63,6 +63,7 @@ class ProxyCreator {
         newOne
     }
 
+    @CompileStatic
     private static class Key {
         String clientUuid
         String context

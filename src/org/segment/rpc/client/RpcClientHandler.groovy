@@ -21,13 +21,12 @@ import java.util.concurrent.atomic.AtomicInteger
 @Slf4j
 class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
-    AtomicInteger count = new AtomicInteger(0)
+    private AtomicInteger count = new AtomicInteger(0)
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RpcMessage msg) throws Exception {
         if (msg.messageType == RpcMessage.MessageType.PONG) {
-            count.getAndIncrement()
-            def number = count.get()
+            def number = count.incrementAndGet()
             if (number % 10 == 0) {
                 log.info 'heartbeat {}, count {}', msg.data, number
             }
@@ -62,7 +61,7 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         InetSocketAddress socketAddress = channel.remoteAddress() as InetSocketAddress
         def address = socketAddress.address
         def remoteUrl = new RemoteUrl(address.hostAddress, socketAddress.port)
-        log.info 'channel active local {} remote {}', localAddress, remoteUrl
+        log.info 'channel inactive local {} remote {}', localAddress, remoteUrl
 
         // if all channel is inactive, fire event, so that the registry(discover) will set ready false
         def isLeftActive = ChannelHolder.instance.isLeftActive(remoteUrl, channel)

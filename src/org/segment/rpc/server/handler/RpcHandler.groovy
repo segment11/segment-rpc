@@ -17,6 +17,7 @@ import org.segment.rpc.stats.StatsType
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.atomic.AtomicInteger
 
 @CompileStatic
 @Slf4j
@@ -50,6 +51,8 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
         log.info 'channel unregister {}', remoteAddress
     }
 
+    private AtomicInteger count = new AtomicInteger(0)
+
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RpcMessage msg) throws Exception {
         try {
@@ -73,6 +76,12 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
                 writeAndFlush(ctx, result)
             }
+
+            def number = count.incrementAndGet()
+            if (number % executor.maximumPoolSize == 0) {
+                CounterInMinute.instance.setOne(executor.queue.size(), StatsType.QUEUE_SIZE)
+            }
+            executor
         } catch (RejectedExecutionException e) {
             CounterInMinute.instance.increaseAndGet(1, StatsType.REJECT_NUMBER)
 
