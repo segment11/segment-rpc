@@ -21,6 +21,12 @@ import java.util.concurrent.atomic.AtomicInteger
 @Slf4j
 class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
+    private ResponseFutureHolder responseFutureHolder
+
+    RpcClientHandler(ResponseFutureHolder responseFutureHolder) {
+        this.responseFutureHolder = responseFutureHolder
+    }
+
     private AtomicInteger count = new AtomicInteger(0)
 
     @Override
@@ -38,7 +44,7 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         }
 
         Resp resp = msg.data as Resp
-        ProcessFuture.instance.complete(resp)
+        responseFutureHolder.complete(resp)
     }
 
     @Override

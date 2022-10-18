@@ -35,6 +35,8 @@ class RpcClient {
     private Registry registry
     private LoadBalance loadBalance
 
+    private ResponseFutureHolder responseFutureHolder
+
     private String uuid
 
     String getUuid() {
@@ -56,7 +58,10 @@ class RpcClient {
             log.info('event loop group shutdown...')
             eventLoopGroup = null
         }
-        ProcessFuture.instance.discard()
+        if (responseFutureHolder) {
+            responseFutureHolder.stop()
+            responseFutureHolder = null
+        }
     }
 
     RpcClient(RpcConf conf = null) {
@@ -67,6 +72,9 @@ class RpcClient {
         initEventHandler()
 
         uuid = UUID.randomUUID().toString()
+
+        responseFutureHolder = new ResponseFutureHolder()
+        responseFutureHolder.init(c)
 
         eventLoopGroup = new NioEventLoopGroup()
         bootstrap = new Bootstrap()
@@ -88,7 +96,7 @@ class RpcClient {
                                 new IdleStateHandler(0, writerIdleTimeSeconds, 0, TimeUnit.SECONDS))
                                 .addLast(new Encoder())
                                 .addLast(new Decoder())
-                                .addLast(new RpcClientHandler())
+                                .addLast(new RpcClientHandler(responseFutureHolder))
                     }
                 })
 
@@ -128,8 +136,8 @@ class RpcClient {
     private final String NEED_RETRY_HEADER = 'needRetry'
 
     Resp sendSync(Req req, long timeoutMillis = 0) {
-        // not request timeout
-        long timeoutMillisDefault = c.getInt('client.get.response.timeout.millis', 2000)
+        // client config
+        int timeoutMillisDefault = c.getInt('client.get.response.timeout.millis', 2000)
         long ms = timeoutMillis == 0 ? timeoutMillisDefault : timeoutMillis
 
         def future = send(req)
@@ -137,7 +145,7 @@ class RpcClient {
             return future.get(ms, TimeUnit.MILLISECONDS)
         } catch (TimeoutException e) {
             log.warn('send request timeout - uri {}, retries {}, timeoutMs {}', req.uri, req.retries, ms)
-            ProcessFuture.instance.complete(new Resp(status: Resp.Status.INTERNAL_EX, uuid: req.uuid))
+            responseFutureHolder.complete(new Resp(status: Resp.Status.INTERNAL_EX, uuid: req.uuid))
 
             boolean needRetry = Boolean.valueOf(req.header(NEED_RETRY_HEADER))
             if (needRetry) {
@@ -148,7 +156,8 @@ class RpcClient {
         }
     }
 
-    CompletableFuture<Resp> send(Req req) {
+    // only sync call for user
+    private CompletableFuture<Resp> send(Req req) {
         if (isStopped) {
             throw new IllegalStateException('rpc client stopped')
         }
@@ -197,8 +206,10 @@ class RpcClient {
         msg.messageType = RpcMessage.MessageType.REQ
         initRpcMessage(msg)
 
+        // registry config
+        int timeoutMillis = remoteUrl.getInt('client.get.response.timeout.millis', 2000)
         def resultFuture = new CompletableFuture<Resp>()
-        ProcessFuture.instance.put(req.uuid, resultFuture)
+        responseFutureHolder.put(req.uuid, resultFuture, timeoutMillis)
 
         channel.writeAndFlush(msg).addListener({ ChannelFuture future ->
             if (!future.isSuccess()) {
