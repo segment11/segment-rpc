@@ -48,6 +48,8 @@ class RpcServer {
 
     private Registry registry
 
+    private ChannelHolder channelHolder
+
     private RemoteUrl remoteUrl
 
     private HTTPServer metricsServer
@@ -107,7 +109,10 @@ class RpcServer {
             registry.shutdown()
             registry = null
         }
-        ChannelHolder.instance.disconnect()
+        if (channelHolder) {
+            channelHolder.disconnect()
+            channelHolder = null
+        }
         if (workerGroup) {
             workerGroup.shutdownGracefully()
             log.info('worker group shutdown...')
@@ -141,6 +146,8 @@ class RpcServer {
             log.info('start metric server {}:{}', remoteUrl.host, metricServerPort)
         }
 
+        channelHolder = new ChannelHolder()
+
         registry = SpiSupport.getRegistry(c)
         registry.init(c)
 
@@ -163,7 +170,7 @@ class RpcServer {
                                     .addLast(new IdleStateHandler(30, 0, 0, TimeUnit.SECONDS))
                                     .addLast(new Encoder())
                                     .addLast(new Decoder())
-                                    .addLast(handlerGroup, new RpcHandler(remoteUrl, executor))
+                                    .addLast(handlerGroup, new RpcHandler(remoteUrl, executor, channelHolder))
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)

@@ -6,7 +6,6 @@ import org.segment.rpc.server.handler.Req
 import org.segment.rpc.server.registry.RemoteUrl
 
 @CompileStatic
-@Singleton
 @Slf4j
 class RandomLoadBalance implements LoadBalance {
     @Override

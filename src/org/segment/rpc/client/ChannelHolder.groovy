@@ -7,7 +7,6 @@ import org.segment.rpc.server.registry.RemoteUrl
 import java.util.concurrent.ConcurrentHashMap
 
 @CompileStatic
-@Singleton
 class ChannelHolder {
     private final Map<RemoteUrl, MultiChannel> items = new ConcurrentHashMap<>()
 

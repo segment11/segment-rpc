@@ -25,10 +25,12 @@ import java.util.concurrent.atomic.AtomicInteger
 class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
     private RemoteUrl remoteUrl
     private ThreadPoolExecutor executor
+    private ChannelHolder channelHolder
 
-    RpcHandler(RemoteUrl remoteUrl, ThreadPoolExecutor executor) {
+    RpcHandler(RemoteUrl remoteUrl, ThreadPoolExecutor executor, ChannelHolder channelHolder) {
         this.remoteUrl = remoteUrl
         this.executor = executor
+        this.channelHolder = channelHolder
     }
 
     // for management dashboard
@@ -56,7 +58,7 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
     void channelActive(ChannelHandlerContext ctx) throws Exception {
         def channel = ctx.channel()
         log.info 'channel active {}', channel.remoteAddress()
-        ChannelHolder.instance.add(remoteUrl, channel)
+        channelHolder.add(remoteUrl, channel)
 
         super.channelActive(ctx)
     }
@@ -65,7 +67,7 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
     void channelInactive(ChannelHandlerContext ctx) throws Exception {
         def channel = ctx.channel()
         log.info 'channel inactive {}', channel.remoteAddress()
-        ChannelHolder.instance.remove(remoteUrl, channel)
+        channelHolder.remove(remoteUrl, channel)
 
         super.channelInactive(ctx)
     }

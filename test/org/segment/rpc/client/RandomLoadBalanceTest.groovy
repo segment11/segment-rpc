@@ -7,7 +7,7 @@ import spock.lang.Specification
 class RandomLoadBalanceTest extends Specification {
     void testSelect() {
         given:
-        def loadBalance = RandomLoadBalance.instance
+        def loadBalance = new RandomLoadBalance()
         List<RemoteUrl> list = []
         and:
         5.times {

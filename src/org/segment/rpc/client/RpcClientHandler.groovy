@@ -22,9 +22,11 @@ import java.util.concurrent.atomic.AtomicInteger
 class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
     private ResponseFutureHolder responseFutureHolder
+    private ChannelHolder channelHolder
 
-    RpcClientHandler(ResponseFutureHolder responseFutureHolder) {
+    RpcClientHandler(ResponseFutureHolder responseFutureHolder, ChannelHolder channelHolder) {
         this.responseFutureHolder = responseFutureHolder
+        this.channelHolder = channelHolder
     }
 
     private AtomicInteger count = new AtomicInteger(0)
@@ -70,7 +72,7 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         log.info 'channel inactive local {} remote {}', localAddress, remoteUrl
 
         // if all channel is inactive, fire event, so that the registry(discover) will set ready false
-        def isLeftActive = ChannelHolder.instance.isLeftActive(remoteUrl, channel)
+        def isLeftActive = channelHolder.isLeftActive(remoteUrl, channel)
         if (!isLeftActive) {
             EventHandler.instance.fire(remoteUrl, EventType.INACTIVE)
         }
@@ -108,10 +110,10 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         def address = socketAddress.address
         def remoteUrl = new RemoteUrl(address.hostAddress, socketAddress.port)
 
-        def isLeftActive = ChannelHolder.instance.isLeftActive(remoteUrl, channel)
+        def isLeftActive = channelHolder.isLeftActive(remoteUrl, channel)
         if (!isLeftActive) {
             EventHandler.instance.fire(remoteUrl, EventType.INACTIVE)
-            ChannelHolder.instance.remove(remoteUrl)
+            channelHolder.remove(remoteUrl)
             log.info 'as all is inactive so remove channel holder for - ' + remoteUrl
         }
     }

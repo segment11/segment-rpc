@@ -17,7 +17,7 @@ class SpiSupport {
 
     static LoadBalance getLoadBalance() {
         ServiceLoader.load(LoadBalance, cl).find { it.class.name.startsWith('vendor') } as LoadBalance
-                ?: RandomLoadBalance.instance
+                ?: new RandomLoadBalance()
     }
 
 }

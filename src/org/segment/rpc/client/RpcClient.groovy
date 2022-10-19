@@ -41,6 +41,9 @@ class RpcClient {
 
     private ResponseFutureHolder responseFutureHolder
 
+    private ChannelHolder channelHolder
+
+    // client uuid
     private String uuid
 
     String getUuid() {
@@ -54,9 +57,12 @@ class RpcClient {
 
         if (registry) {
             registry.shutdown()
-            registry = null
+            registry = null // if stop many times, log to many
         }
-        ChannelHolder.instance.disconnect()
+        if (channelHolder) {
+            channelHolder.disconnect()
+            channelHolder = null
+        }
         if (eventLoopGroup) {
             eventLoopGroup.shutdownGracefully()
             log.info('event loop group shutdown...')
@@ -73,9 +79,10 @@ class RpcClient {
         log.info c.toString()
         c.on('is.client.running')
 
-        initEventHandler()
-
         uuid = UUID.randomUUID().toString()
+
+        channelHolder = new ChannelHolder()
+        initEventHandler()
 
         responseFutureHolder = new ResponseFutureHolder()
         responseFutureHolder.init(c)
@@ -100,7 +107,7 @@ class RpcClient {
                                 new IdleStateHandler(0, writerIdleTimeSeconds, 0, TimeUnit.SECONDS))
                                 .addLast(new Encoder())
                                 .addLast(new Decoder())
-                                .addLast(new RpcClientHandler(responseFutureHolder))
+                                .addLast(new RpcClientHandler(responseFutureHolder, channelHolder))
                     }
                 })
 
@@ -204,7 +211,7 @@ class RpcClient {
     }
 
     private CompletableFuture<Resp> sendOnce(RemoteUrl remoteUrl, Req req) {
-        def channel = ChannelHolder.instance.getActive(remoteUrl)
+        def channel = channelHolder.getActive(remoteUrl)
         // when registry found new server list, do connect and add to channel holder already
         // if server crash down
         if (channel == null) {
@@ -236,7 +243,7 @@ class RpcClient {
         responseFutureHolder.remove(req.uuid)
 
         // this channel is down, check if there is another active channel
-        def channelAnother = ChannelHolder.instance.getActiveExcludeOne(remoteUrl, channel)
+        def channelAnother = channelHolder.getActiveExcludeOne(remoteUrl, channel)
         if (channelAnother) {
             // try again
             log.warn('send once retry and server: {}, uri: {}, retries: {}, uuid: {}',
@@ -275,7 +282,7 @@ class RpcClient {
                 // use local or remote ?
 //                remoteUrl.extend(c.params, false)
                 int needCreateChannelNumber = remoteUrl.getInt(RpcConf.CLIENT_CHANNEL_NUMBER_PER_SERVER, 2)
-                int activeNumber = ChannelHolder.instance.getActiveNumber(remoteUrl)
+                int activeNumber = channelHolder.getActiveNumber(remoteUrl)
                 if (activeNumber >= needCreateChannelNumber) {
                     log.warn 'already have active channel for {} number {}', remoteUrl, activeNumber
                     return
@@ -285,7 +292,7 @@ class RpcClient {
                 for (int i = activeNumber; i < needCreateChannelNumber; i++) {
                     def newOne = RpcClient.this.doConnect(remoteUrl)
                     if (newOne) {
-                        ChannelHolder.instance.add(remoteUrl, newOne)
+                        channelHolder.add(remoteUrl, newOne)
                     } else {
                         log.warn 'do connect failed - {}', remoteUrl
                     }
