@@ -93,8 +93,12 @@ md.controller('MainCtrl', function ($scope, $http, uiTips, uiValid) {
     };
 
     $scope.changeParamValidRule = function(keyValue){
-        this.param.validRule = ['client.send.retries',
-            'client.channel.number.per.server'].contains(keyValue) ? 'r int' : 'r';
+        this.param.validRule = [
+            'client.send.retries',
+            'client.channel.number.per.server',
+            'client.request.timeout.millis',
+            'client.get.response.timeout.millis'
+            ].contains(keyValue) ? 'r int' : 'r';
     };
 
     $scope.updateParams = function(one){

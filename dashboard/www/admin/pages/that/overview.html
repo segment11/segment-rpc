@@ -150,8 +150,10 @@
                     <select ng-model="param.key" style="width: 200px;" ui-valid="r"
                             ng-change="changeParamValidRule(param.key)">
                         <option value="test.key" selected>just for test</option>
-                        <option value="client.send.retries" selected>retries</option>
-                        <option value="client.channel.number.per.server" selected>channel number client -> 1 server</option>
+                        <option value="client.send.retries">retries</option>
+                        <option value="client.request.timeout.millis">request timeout</option>
+                        <option value="client.get.response.timeout.millis">get response timeout</option>
+                        <option value="client.channel.number.per.server">channel number per client</option>
                     </select>
                 </td>
                 <td>
