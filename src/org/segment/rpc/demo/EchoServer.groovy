@@ -7,23 +7,24 @@ import org.segment.rpc.server.handler.Resp
 import org.segment.rpc.server.provider.DefaultProvider
 import org.slf4j.LoggerFactory
 
-def server = new RpcServer()
-
 def log = LoggerFactory.getLogger(this.getClass())
+def server = new RpcServer()
 
 def h = ChainHandler.instance
 h.context('/rpc').group('/v1') {
     h.get('/echo') { req ->
-        log.info 'request get ' + req.body
+        log.info req.body
 
         long ms = 10 + new Random().nextInt(50)
         Thread.currentThread().sleep(ms)
-        Resp.one('ok - ' + req.body)
+        1
     }.get('/ex') { req ->
         Resp.fail('error')
     }.get('/timeout') { req ->
-        Thread.sleep(3000)
-        Resp.one('ok - ' + req.body)
+//        if (req.retries == 0) {
+            Thread.sleep(3000)
+//        }
+        1
     }
 }
 
@@ -35,5 +36,12 @@ reader.quitHandler = {
     server.stop()
 }
 reader.read()
+
+Thread.start {
+    // mock server down normally
+    Thread.sleep(10000)
+    reader.stop()
+    server.stop()
+}
 
 server.start()

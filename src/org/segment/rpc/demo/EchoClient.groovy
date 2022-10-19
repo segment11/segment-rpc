@@ -4,8 +4,14 @@ import org.segment.rpc.client.RpcClient
 import org.segment.rpc.common.ConsoleReader
 import org.segment.rpc.invoke.ProxyCreator
 import org.segment.rpc.server.handler.Req
+import org.slf4j.LoggerFactory
 
+import java.util.concurrent.ConcurrentSkipListSet
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicInteger
+
+def log = LoggerFactory.getLogger(this.getClass())
 
 def client = new RpcClient()
 
@@ -48,18 +54,52 @@ try {
     println 'timeout and ignore'
 }
 
-int threadNumber = 10
-int loopTimes = 10
+int threadNumber = 100
+int loopTimes = 100
+
+AtomicInteger count = new AtomicInteger(0)
+AtomicInteger errorCount = new AtomicInteger(0)
+def latch = new CountDownLatch(threadNumber)
+
+Set<String> uuidSet = new ConcurrentSkipListSet<>()
 
 threadNumber.times { i ->
     Thread.start {
-        loopTimes.times { j ->
-            def resp2 = client.sendSync(new Req('/rpc/v1/echo', "hi ${i}, ${j}".toString()))
-            println '' + resp2.status + ':' + resp2?.body
-            println say.hi("kerry ${i}, ${j}".toString())
-            // mock do business
-            long ms = 10 + new Random().nextInt(10)
-            Thread.sleep(ms)
+        try {
+            loopTimes.times { j ->
+                def req = new Req('/rpc/v1/echo', "hi ${i}, ${j}".toString())
+                uuidSet << req.uuid
+                try {
+                    def resp2 = client.sendSync(req)
+                    uuidSet.remove(resp2.uuid)
+                    if (resp2.ok()) {
+                        println '' + resp.status + ':' + resp2.body
+                    } else {
+                        println '' + resp.status + ':' + resp2.message
+                    }
+//                  println say.hi("kerry ${i}, ${j}".toString())
+                    count.incrementAndGet()
+                    // mock do business
+                    long ms = 10 + new Random().nextInt(100)
+                    Thread.sleep(ms)
+                } catch (Exception e) {
+                    if (e instanceof TimeoutException) {
+                        log.warn('client send timeout, uuid: ' + req.uuid)
+                    } else {
+                        log.error('client send error, uuid: ' + req.uuid, e)
+                    }
+                    errorCount.incrementAndGet()
+                }
+            }
+        } finally {
+            latch.countDown()
         }
     }
 }
+
+latch.await()
+println 'all requests send'
+
+println 'ok count - ' + count.get()
+println 'error count - ' + errorCount.get()
+println 'left uuid - ' + uuidSet

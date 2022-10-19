@@ -9,7 +9,7 @@ import org.segment.rpc.server.provider.DefaultProvider
 import org.slf4j.LoggerFactory
 
 Map props = [:]
-props['server.listen.port'] = 18877
+props['server.listen.port'] = 28877
 props['server.metric.export'] = 0
 
 def c = RpcConf.fromLoad()
