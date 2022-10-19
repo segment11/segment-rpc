@@ -20,7 +20,6 @@ class MultiChannel {
         this.remoteUrl = remoteUrl
     }
 
-    // get one active channel round robin
     Channel get() {
         if (!channels) {
             return null
@@ -35,6 +34,27 @@ class MultiChannel {
         return activeChannels[i % activeChannels.size()]
     }
 
+    // get one active channel round robin
+    Channel getExclude(Channel excludeOne) {
+        for (int i = 0; i < channels.size(); i++) {
+            def channel = channels[i]
+            if (channel != excludeOne && channel.isActive()) {
+                return channel
+            }
+        }
+        null
+    }
+
+    int getActiveNumber() {
+        int number = 0
+        channels.each {
+            if (it.isActive()) {
+                number++
+            }
+        }
+        number
+    }
+
     synchronized void add(Channel channel) {
         channels.add(channel)
     }
@@ -43,17 +63,17 @@ class MultiChannel {
         channels.remove(channel)
     }
 
-    void close() {
+    synchronized void close() {
         channels.each { v ->
             if (!v.isOpen()) {
                 return
             }
             try {
-                log.info 'ready to disconnect {}', remoteUrl
+                log.info 'ready to disconnect {}', v.remoteAddress()
                 v.close()
-                log.info 'done disconnect {}', remoteUrl
+                log.info 'done disconnect {}', v.remoteAddress()
             } catch (Exception e) {
-                log.error('disconnect channel error - ' + remoteUrl, e)
+                log.error('disconnect channel error - ' + v.remoteAddress(), e)
             }
         }
     }

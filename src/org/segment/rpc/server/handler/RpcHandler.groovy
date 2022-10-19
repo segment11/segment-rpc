@@ -7,6 +7,7 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.handler.timeout.IdleState
 import io.netty.handler.timeout.IdleStateEvent
+import org.segment.rpc.client.ChannelHolder
 import org.segment.rpc.manage.ClientChannelInfo
 import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.RpcMessage
@@ -51,6 +52,24 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
         log.info 'channel unregister {}', remoteAddress
     }
 
+    @Override
+    void channelActive(ChannelHandlerContext ctx) throws Exception {
+        def channel = ctx.channel()
+        log.info 'channel active {}', channel.remoteAddress()
+        ChannelHolder.instance.add(remoteUrl, channel)
+
+        super.channelActive(ctx)
+    }
+
+    @Override
+    void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        def channel = ctx.channel()
+        log.info 'channel inactive {}', channel.remoteAddress()
+        ChannelHolder.instance.remove(remoteUrl, channel)
+
+        super.channelInactive(ctx)
+    }
+
     private AtomicInteger count = new AtomicInteger(0)
 
     @Override
@@ -85,13 +104,15 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
         } catch (RejectedExecutionException e) {
             CounterInMinute.instance.increaseAndGet(1, StatsType.REJECT_NUMBER)
 
+            def resp = Resp.fail('thread pool reject')
             if (!msg.isPingPong()) {
                 Req req = msg.data as Req
-                log.warn('thread pool reject, request id {}', req.uuid)
+                log.warn 'thread pool reject, request id {}', req.uuid
+                resp.uuid = req.uuid
             }
 
             RpcMessage result = msg.response()
-            result.data = Resp.fail('thread pool reject')
+            result.data = resp
 
             writeAndFlush(ctx, result)
         }
@@ -101,13 +122,13 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
         if (ctx.channel().isActive() && ctx.channel().isWritable()) {
             ctx.writeAndFlush(result).addListener(ChannelFutureListener.CLOSE_ON_FAILURE)
         } else {
-            log.warn('rpc handle error as channel not writable {}', ctx.channel().remoteAddress())
+            log.warn 'rpc handle fail as channel not writable {}', ctx.channel().remoteAddress()
         }
     }
 
     @Override
     void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        log.error('rpc handle error ' + ctx.channel().remoteAddress(), cause)
+        log.error('rpc handle exception ' + ctx.channel().remoteAddress(), cause)
         ctx.close()
     }
 

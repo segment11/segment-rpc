@@ -80,10 +80,17 @@ class ZookeeperRegistry implements Registry {
         for (one in getList) {
             def localOne = cachedLocalList.find { it == one }
             if (localOne) {
+                // if local ready is false, need try connect
+                boolean isNeedFire = !localOne.ready
+
                 localOne.ready = one.ready
                 localOne.weight = one.weight
                 localOne.updatedTime = one.updatedTime
                 localOne.extend(one.params)
+
+                if (isNeedFire) {
+                    EventHandler.instance.fire(one, EventType.NEW_ADDED)
+                }
             } else {
                 // set ready false and trigger client do connect first and then set ready true when channel is active
                 if (initReadyFalse) {
@@ -127,7 +134,7 @@ class ZookeeperRegistry implements Registry {
         // use interval, simple
         scheduler = Executors.newSingleThreadScheduledExecutor()
 
-        final int interval = c.getInt('client.refresh.registry.interval.seconds', 10)
+        final int interval = c.getInt('client.refresh.registry.interval.seconds', 2)
 
         def now = new Date()
         int sec = now.seconds
@@ -154,7 +161,7 @@ class ZookeeperRegistry implements Registry {
                 for (one in cachedLocalList) {
                     if (one == remoteUrl) {
                         one.ready = true
-                        log.info 'channel is active {} set ready = true', one
+                        log.info 'channel is active for {} set ready = true', one
                     }
                 }
             }
@@ -168,12 +175,7 @@ class ZookeeperRegistry implements Registry {
 
             @Override
             void handle(RemoteUrl remoteUrl) {
-                for (one in cachedLocalList) {
-                    if (one == remoteUrl) {
-                        one.ready = false
-                        log.info 'channel is inactive {} set ready = false', one
-                    }
-                }
+                ZookeeperRegistry.this.unavailable(remoteUrl)
             }
         })
     }
@@ -202,6 +204,16 @@ class ZookeeperRegistry implements Registry {
             zkClient.createEphemeral(targetPath, data)
         }
         log.info 'done write data {}', remoteUrl.toStringView()
+    }
+
+    @Override
+    void unavailable(RemoteUrl remoteUrl) {
+        for (one in cachedLocalList) {
+            if (one == remoteUrl) {
+                one.ready = false
+                log.info 'all channel is inactive for {} set ready = false', one
+            }
+        }
     }
 
     @Override

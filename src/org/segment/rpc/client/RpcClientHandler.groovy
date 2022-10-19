@@ -100,7 +100,19 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
     @Override
     void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        log.error('client handle exception - ' + ctx.channel().remoteAddress(), cause)
-        // do not close channel
+        def channel = ctx.channel()
+        log.error('client handle exception - ' + channel.remoteAddress(), cause)
+        ctx.close()
+
+        InetSocketAddress socketAddress = channel.remoteAddress() as InetSocketAddress
+        def address = socketAddress.address
+        def remoteUrl = new RemoteUrl(address.hostAddress, socketAddress.port)
+
+        def isLeftActive = ChannelHolder.instance.isLeftActive(remoteUrl, channel)
+        if (!isLeftActive) {
+            EventHandler.instance.fire(remoteUrl, EventType.INACTIVE)
+            ChannelHolder.instance.remove(remoteUrl)
+            log.info 'as all is inactive so remove channel holder for - ' + remoteUrl
+        }
     }
 }

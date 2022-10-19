@@ -80,6 +80,7 @@ class StatsHolder {
         if (scheduler) {
             scheduler.shutdown()
             log.info 'refresh-stats-to-gauge shutdown'
+            scheduler = null
         }
     }
 }

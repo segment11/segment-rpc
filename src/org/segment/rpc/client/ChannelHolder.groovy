@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
 class ChannelHolder {
     private final Map<RemoteUrl, MultiChannel> items = new ConcurrentHashMap<>()
 
-    Channel get(RemoteUrl remoteUrl) {
+    Channel getActive(RemoteUrl remoteUrl) {
         def channels = items[remoteUrl]
         if (!channels) {
             return null
@@ -19,7 +19,23 @@ class ChannelHolder {
         channels.get()
     }
 
-    void add(RemoteUrl remoteUrl, Channel channel) {
+    Channel getActiveExcludeOne(RemoteUrl remoteUrl, Channel excludeOne) {
+        def channels = items[remoteUrl]
+        if (!channels) {
+            return null
+        }
+        channels.getExclude(excludeOne)
+    }
+
+    synchronized int getActiveNumber(RemoteUrl remoteUrl) {
+        def channels = items[remoteUrl]
+        if (!channels) {
+            return 0
+        }
+        channels.getActiveNumber()
+    }
+
+    synchronized void add(RemoteUrl remoteUrl, Channel channel) {
         def channels = new MultiChannel(remoteUrl)
         channels.add(channel)
         def old = items.putIfAbsent(remoteUrl, channels)
@@ -28,7 +44,20 @@ class ChannelHolder {
         }
     }
 
-    boolean isLeftActive(RemoteUrl remoteUrl, Channel channel) {
+    synchronized void remove(RemoteUrl remoteUrl) {
+        items.remove(remoteUrl)
+    }
+
+    synchronized void remove(RemoteUrl remoteUrl, Channel channel) {
+        def channels = items[remoteUrl]
+        if (!channels) {
+            return
+        }
+
+        channels.remove(channel)
+    }
+
+    synchronized boolean isLeftActive(RemoteUrl remoteUrl, Channel channel) {
         def channels = items[remoteUrl]
         if (!channels) {
             return false
@@ -36,7 +65,7 @@ class ChannelHolder {
         channels.isLeftActive(channel)
     }
 
-    void disconnect() {
+    synchronized void disconnect() {
         items.each { k, v ->
             v.close()
         }

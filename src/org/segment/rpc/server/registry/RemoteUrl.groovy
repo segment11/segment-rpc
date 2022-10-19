@@ -15,7 +15,7 @@ class RemoteUrl extends AbstractConf {
 
     String context = '/rpc'
 
-    boolean ready = true
+    volatile boolean ready = true
 
     int weight = DEFAULT_WEIGHT
 

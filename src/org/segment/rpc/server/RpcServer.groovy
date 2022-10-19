@@ -14,6 +14,7 @@ import io.netty.handler.timeout.IdleStateHandler
 import io.netty.util.concurrent.DefaultEventExecutorGroup
 import io.prometheus.client.exporter.HTTPServer
 import io.prometheus.client.hotspot.DefaultExports
+import org.segment.rpc.client.ChannelHolder
 import org.segment.rpc.common.RpcConf
 import org.segment.rpc.common.SpiSupport
 import org.segment.rpc.common.Utils
@@ -101,11 +102,12 @@ class RpcServer {
             log.info('stop metric server')
             metricsServer = null
         }
+        StatsHolder.instance.stop()
         if (registry) {
             registry.shutdown()
             registry = null
         }
-        StatsHolder.instance.stop()
+        ChannelHolder.instance.disconnect()
         if (workerGroup) {
             workerGroup.shutdownGracefully()
             log.info('worker group shutdown...')
@@ -129,6 +131,7 @@ class RpcServer {
     }
 
     void start() {
+        StatsHolder.instance.init(remoteUrl)
         if (c.isOn('server.metric.export')) {
             if (c.isOn('server.metric.jvm.export')) {
                 DefaultExports.initialize()
@@ -140,8 +143,6 @@ class RpcServer {
 
         registry = SpiSupport.getRegistry(c)
         registry.init(c)
-
-        StatsHolder.instance.init(remoteUrl)
 
         def cpuNumber = Runtime.getRuntime().availableProcessors()
         int handleGroupThreadNumber = c.getInt('server.handle.group.thread.number', cpuNumber * 2)

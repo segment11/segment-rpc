@@ -10,6 +10,8 @@ interface Registry {
 
     void register(RemoteUrl url)
 
+    void unavailable(RemoteUrl url)
+
     List<RemoteUrl> discover(Req req)
 
     void shutdown()
