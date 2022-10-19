@@ -5,7 +5,7 @@ import spock.lang.Specification
 class EventHandlerTest extends Specification {
     def testFire() {
         given:
-        def handler = EventHandler.instance
+        def handler = new EventHandler()
         int count = 0
         and:
         handler.add(new EventTrigger() {

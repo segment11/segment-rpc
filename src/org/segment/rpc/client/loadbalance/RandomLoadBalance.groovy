@@ -2,6 +2,7 @@ package org.segment.rpc.client.loadbalance
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
+import org.segment.rpc.common.RpcConf
 import org.segment.rpc.server.handler.Req
 import org.segment.rpc.server.registry.RemoteUrl
 
@@ -31,12 +32,12 @@ class RandomLoadBalance implements LoadBalance {
     }
 
     @Override
-    void init() {
-
+    void init(RpcConf c) {
+        // ignore
     }
 
     @Override
     void shutdown() {
-
+        // ignore
     }
 }

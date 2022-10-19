@@ -11,8 +11,8 @@ import io.netty.handler.timeout.IdleStateEvent
 import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.handler.Resp
-import org.segment.rpc.server.registry.EventHandler
 import org.segment.rpc.server.registry.EventType
+import org.segment.rpc.server.registry.Registry
 import org.segment.rpc.server.registry.RemoteUrl
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -23,10 +23,12 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
     private ResponseFutureHolder responseFutureHolder
     private ChannelHolder channelHolder
+    private Registry registry
 
-    RpcClientHandler(ResponseFutureHolder responseFutureHolder, ChannelHolder channelHolder) {
+    RpcClientHandler(ResponseFutureHolder responseFutureHolder, ChannelHolder channelHolder, Registry registry) {
         this.responseFutureHolder = responseFutureHolder
         this.channelHolder = channelHolder
+        this.registry = registry
     }
 
     private AtomicInteger count = new AtomicInteger(0)
@@ -57,7 +59,7 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         def address = socketAddress.address
         def remoteUrl = new RemoteUrl(address.hostAddress, socketAddress.port)
         log.info 'channel active local {} remote {}', localAddress, remoteUrl
-        EventHandler.instance.fire(remoteUrl, EventType.ACTIVE)
+        registry.fire(remoteUrl, EventType.ACTIVE)
 
         super.channelActive(ctx)
     }
@@ -74,7 +76,7 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         // if all channel is inactive, fire event, so that the registry(discover) will set ready false
         def isLeftActive = channelHolder.isLeftActive(remoteUrl, channel)
         if (!isLeftActive) {
-            EventHandler.instance.fire(remoteUrl, EventType.INACTIVE)
+            registry.fire(remoteUrl, EventType.INACTIVE)
         }
 
         super.channelInactive(ctx)
@@ -112,7 +114,7 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
         def isLeftActive = channelHolder.isLeftActive(remoteUrl, channel)
         if (!isLeftActive) {
-            EventHandler.instance.fire(remoteUrl, EventType.INACTIVE)
+            registry.fire(remoteUrl, EventType.INACTIVE)
             channelHolder.remove(remoteUrl)
             log.info 'as all is inactive so remove channel holder for - ' + remoteUrl
         }

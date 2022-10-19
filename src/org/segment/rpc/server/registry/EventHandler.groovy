@@ -4,14 +4,13 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 
 @CompileStatic
-@Singleton
 @Slf4j
 class EventHandler {
     // happen every little
     List<EventTrigger> eventList = Collections.synchronizedList(new LinkedList<EventTrigger>())
 
-    void add(EventTrigger event) {
-        eventList.add(event)
+    void add(EventTrigger trigger) {
+        eventList.add(trigger)
     }
 
     void fire(RemoteUrl remoteUrl, EventType type) {

@@ -23,6 +23,8 @@ class ZookeeperRegistry implements Registry {
 
     private List<RemoteUrl> cachedLocalList = new LinkedList<RemoteUrl>()
 
+    private EventHandler eventHandler = new EventHandler()
+
     List<RemoteUrl> getCachedLocalList() {
         return cachedLocalList
     }
@@ -89,7 +91,7 @@ class ZookeeperRegistry implements Registry {
                 localOne.extend(one.params)
 
                 if (isNeedFire) {
-                    EventHandler.instance.fire(one, EventType.NEW_ADDED)
+                    eventHandler.fire(one, EventType.NEW_ADDED)
                 }
             } else {
                 // set ready false and trigger client do connect first and then set ready true when channel is active
@@ -98,7 +100,7 @@ class ZookeeperRegistry implements Registry {
                 }
                 cachedLocalList << one
                 log.info 'added new one - ' + one.toStringView()
-                EventHandler.instance.fire(one, EventType.NEW_ADDED)
+                eventHandler.fire(one, EventType.NEW_ADDED)
             }
         }
 
@@ -108,7 +110,7 @@ class ZookeeperRegistry implements Registry {
             if (!getList.contains(one)) {
                 it.remove()
                 log.info 'removed old one - ' + one.toStringView()
-                EventHandler.instance.fire(one, EventType.OLD_REMOVED)
+                eventHandler.fire(one, EventType.OLD_REMOVED)
             }
         }
     }
@@ -150,7 +152,7 @@ class ZookeeperRegistry implements Registry {
     }
 
     private void initEventHandler() {
-        EventHandler.instance.add(new EventTrigger() {
+        eventHandler.add(new EventTrigger() {
             @Override
             EventType type() {
                 EventType.ACTIVE
@@ -167,7 +169,7 @@ class ZookeeperRegistry implements Registry {
             }
         })
 
-        EventHandler.instance.add(new EventTrigger() {
+        eventHandler.add(new EventTrigger() {
             @Override
             EventType type() {
                 EventType.INACTIVE
@@ -223,6 +225,17 @@ class ZookeeperRegistry implements Registry {
             return []
         }
         cachedLocalList.findAll { context == it.context && it.ready }
+    }
+
+    @Override
+    void addEvent(EventTrigger trigger) {
+        eventHandler.add(trigger)
+    }
+
+    @Override
+    void fire(RemoteUrl remoteUrl, EventType type) {
+        log.info 'event fire, remote server: {}, type: {}', remoteUrl, type
+        eventHandler.fire(remoteUrl, type)
     }
 
     @Override

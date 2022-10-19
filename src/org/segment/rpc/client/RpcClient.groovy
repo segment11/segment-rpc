@@ -21,7 +21,10 @@ import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.handler.Req
 import org.segment.rpc.server.handler.Resp
-import org.segment.rpc.server.registry.*
+import org.segment.rpc.server.registry.EventTrigger
+import org.segment.rpc.server.registry.EventType
+import org.segment.rpc.server.registry.Registry
+import org.segment.rpc.server.registry.RemoteUrl
 import org.segment.rpc.server.serialize.Serializer
 
 import java.util.concurrent.CompletableFuture
@@ -59,6 +62,10 @@ class RpcClient {
             registry.shutdown()
             registry = null // if stop many times, log to many
         }
+        if (loadBalance) {
+            loadBalance.shutdown()
+            loadBalance = null
+        }
         if (channelHolder) {
             channelHolder.disconnect()
             channelHolder = null
@@ -82,7 +89,6 @@ class RpcClient {
         uuid = UUID.randomUUID().toString()
 
         channelHolder = new ChannelHolder()
-        initEventHandler()
 
         responseFutureHolder = new ResponseFutureHolder()
         responseFutureHolder.init(c)
@@ -107,14 +113,16 @@ class RpcClient {
                                 new IdleStateHandler(0, writerIdleTimeSeconds, 0, TimeUnit.SECONDS))
                                 .addLast(new Encoder())
                                 .addLast(new Decoder())
-                                .addLast(new RpcClientHandler(responseFutureHolder, channelHolder))
+                                .addLast(new RpcClientHandler(responseFutureHolder, channelHolder, registry))
                     }
                 })
 
         loadBalance = SpiSupport.getLoadBalance()
-        loadBalance.init()
+        loadBalance.init(c)
+
         // registry init in the end, because need doConnect when get remote server list
         registry = SpiSupport.getRegistry(c)
+        initEventHandler()
         registry.init(c)
     }
 
@@ -159,6 +167,7 @@ class RpcClient {
 
             if (req.needRetry) {
                 log.warn 'send sync retry and uri: {}, retries: {}, uuid: {}', req.uri, req.retries, req.uuid
+                req.needRetry = false
                 return sendSync(req, ms)
             } else {
                 throw e
@@ -271,7 +280,7 @@ class RpcClient {
     }
 
     private void initEventHandler() {
-        EventHandler.instance.add(new EventTrigger() {
+        registry.addEvent(new EventTrigger() {
             @Override
             EventType type() {
                 EventType.NEW_ADDED

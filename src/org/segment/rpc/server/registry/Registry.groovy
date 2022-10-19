@@ -14,5 +14,9 @@ interface Registry {
 
     List<RemoteUrl> discover(Req req)
 
+    void addEvent(EventTrigger trigger)
+
+    void fire(RemoteUrl remoteUrl, EventType type)
+
     void shutdown()
 }
