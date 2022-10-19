@@ -20,6 +20,7 @@ class MultiChannel {
         this.remoteUrl = remoteUrl
     }
 
+    // get one active channel round robin
     Channel get() {
         if (!channels) {
             return null
@@ -34,11 +35,11 @@ class MultiChannel {
         return activeChannels[i % activeChannels.size()]
     }
 
-    void add(Channel channel) {
+    synchronized void add(Channel channel) {
         channels.add(channel)
     }
 
-    void remove(Channel channel) {
+    synchronized void remove(Channel channel) {
         channels.remove(channel)
     }
 
