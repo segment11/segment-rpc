@@ -10,6 +10,7 @@ import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.handler.logging.LogLevel
 import io.netty.handler.logging.LoggingHandler
 import io.netty.handler.timeout.IdleStateHandler
+import org.segment.rpc.client.loadbalance.LoadBalance
 import org.segment.rpc.common.RpcConf
 import org.segment.rpc.common.SpiSupport
 import org.segment.rpc.server.codec.Decoder
@@ -244,7 +245,7 @@ class RpcClient {
             }
 
             @Override
-            def handle(RemoteUrl remoteUrl) {
+            void handle(RemoteUrl remoteUrl) {
                 // use local or remote ?
 //                remoteUrl.extend(c.params, false)
                 int needCreateChannelNumber = remoteUrl.getInt(RpcConf.CLIENT_CHANNEL_NUMBER_PER_SERVER, 2)

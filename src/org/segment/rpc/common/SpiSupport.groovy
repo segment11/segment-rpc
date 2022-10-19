@@ -1,8 +1,8 @@
 package org.segment.rpc.common
 
 import groovy.transform.CompileStatic
-import org.segment.rpc.client.DefaultLoadBalance
-import org.segment.rpc.client.LoadBalance
+import org.segment.rpc.client.loadbalance.RandomLoadBalance
+import org.segment.rpc.client.loadbalance.LoadBalance
 import org.segment.rpc.server.registry.Registry
 import org.segment.rpc.server.registry.local.LocalRegistry
 import org.segment.rpc.server.registry.zookeeper.ZookeeperRegistry
@@ -22,7 +22,7 @@ class SpiSupport {
 
     static LoadBalance getLoadBalance() {
         ServiceLoader.load(LoadBalance, cl).find { it.class.name.startsWith('vendor') } as LoadBalance
-                ?: DefaultLoadBalance.instance
+                ?: RandomLoadBalance.instance
     }
 
 }

@@ -30,15 +30,15 @@ class Resp implements Serializable {
         resp
     }
 
-    Status status = Status.OK
-
-    boolean ok() {
-        status == Status.OK
-    }
-
     String uuid
+
+    Status status = Status.OK
 
     String message
 
     Object body
+
+    boolean ok() {
+        status == Status.OK
+    }
 }

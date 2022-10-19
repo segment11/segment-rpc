@@ -17,8 +17,6 @@ import java.util.concurrent.atomic.AtomicInteger
 @CompileStatic
 @Slf4j
 class ZookeeperRegistry implements Registry {
-    private final static String DATE_FORMAT = 'yyyy-MM-dd HH:mm:ss'
-
     private RpcConf c
 
     private ScheduledExecutorService scheduler
@@ -152,7 +150,7 @@ class ZookeeperRegistry implements Registry {
             }
 
             @Override
-            def handle(RemoteUrl remoteUrl) {
+            void handle(RemoteUrl remoteUrl) {
                 for (one in cachedLocalList) {
                     if (one == remoteUrl) {
                         one.ready = true
@@ -169,7 +167,7 @@ class ZookeeperRegistry implements Registry {
             }
 
             @Override
-            def handle(RemoteUrl remoteUrl) {
+            void handle(RemoteUrl remoteUrl) {
                 for (one in cachedLocalList) {
                     if (one == remoteUrl) {
                         one.ready = false

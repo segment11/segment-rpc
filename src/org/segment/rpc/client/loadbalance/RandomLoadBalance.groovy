@@ -1,4 +1,4 @@
-package org.segment.rpc.client
+package org.segment.rpc.client.loadbalance
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
@@ -8,7 +8,7 @@ import org.segment.rpc.server.registry.RemoteUrl
 @CompileStatic
 @Singleton
 @Slf4j
-class DefaultLoadBalance implements LoadBalance {
+class RandomLoadBalance implements LoadBalance {
     @Override
     RemoteUrl select(List<RemoteUrl> list, Req req) {
         if (!list) {

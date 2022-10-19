@@ -8,6 +8,7 @@ class Req extends HeaderSupport implements Serializable {
     String uuid = UUID.randomUUID().toString()
 
     String uri
+
     Object body
 
     int retries = 0

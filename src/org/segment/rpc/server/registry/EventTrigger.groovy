@@ -6,5 +6,5 @@ import groovy.transform.CompileStatic
 abstract class EventTrigger {
     abstract EventType type()
 
-    abstract handle(RemoteUrl remoteUrl)
+    abstract void handle(RemoteUrl remoteUrl)
 }

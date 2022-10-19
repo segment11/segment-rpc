@@ -51,9 +51,6 @@ class ChainHandler implements Handler {
                 CounterInMinute.instance.increaseAndGet(1, StatsType.RESP_500)
             }
             return resp
-        } catch (HaltEx haltEx) {
-            CounterInMinute.instance.increaseAndGet(1, StatsType.RESP_500)
-            return Resp.fail(haltEx.message, haltEx.status)
         } catch (Throwable t) {
             CounterInMinute.instance.increaseAndGet(1, StatsType.RESP_500)
             if (exceptionHandler) {
@@ -61,11 +58,11 @@ class ChainHandler implements Handler {
                     return exceptionHandler.handle(req, t)
                 } catch (Exception e2) {
                     log.error('exception handle error', e2)
-                    return Resp.fail('exception handle error', e2.message)
+                    return Resp.fail('exception handle error - ' + e2.message)
                 }
             } else {
                 log.error('exception handle error', t)
-                return Resp.fail('exception handle error', t.message)
+                return Resp.fail('exception handle error - ' + t.message)
             }
         } finally {
             try {
@@ -132,8 +129,9 @@ class ChainHandler implements Handler {
     }
 
     private String context
+    private String contextOld
 
-    ChainHandler context(String context) {
+    synchronized ChainHandler context(String context) {
         this.context = context
         this
     }
@@ -145,14 +143,15 @@ class ChainHandler implements Handler {
         context + uri
     }
 
-    void group(String groupUri, Closure closure) {
+    synchronized void group(String groupUri, Closure closure) {
+        contextOld = context
         if (context) {
             context += groupUri
         } else {
             context = groupUri
         }
         closure.call()
-        context = context[0..-(groupUri.length() + 1)]
+        context = contextOld
     }
 
     private ChainHandler add(String uri, AbstractHandler handler,
@@ -161,7 +160,9 @@ class ChainHandler implements Handler {
         removeOneThatExists(handler, ll)
         ll << handler
         log.info 'add handler {}', handler.uri
-        handlerNumber.labels(getAddress(), remoteUrl.context).set(ll.size() as double)
+        if (remoteUrl) {
+            handlerNumber.labels(getAddress(), remoteUrl.context).set(ll.size() as double)
+        }
         this
     }
 

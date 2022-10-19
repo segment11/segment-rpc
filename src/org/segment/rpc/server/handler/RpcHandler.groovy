@@ -38,7 +38,7 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
         super.channelRegistered(ctx)
 
         String remoteAddress = ctx.channel().remoteAddress().toString()
-        clientChannelInfoHolder.put(remoteAddress, new ClientChannelInfo(address: remoteAddress))
+        clientChannelInfoHolder.put(remoteAddress, new ClientChannelInfo(remoteAddress))
         log.info 'channel register {}', remoteAddress
     }
 

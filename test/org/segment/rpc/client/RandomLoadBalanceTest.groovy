@@ -1,12 +1,13 @@
 package org.segment.rpc.client
 
+import org.segment.rpc.client.loadbalance.RandomLoadBalance
 import org.segment.rpc.server.registry.RemoteUrl
 import spock.lang.Specification
 
-class DefaultLoadBalanceTest extends Specification {
+class RandomLoadBalanceTest extends Specification {
     void testSelect() {
         given:
-        def loadBalance = DefaultLoadBalance.instance
+        def loadBalance = RandomLoadBalance.instance
         List<RemoteUrl> list = []
         and:
         5.times {

@@ -18,10 +18,15 @@ abstract class AbstractHandler implements Handler {
             return null
         }
 
-        hi(req)
+        def obj = hi(req)
+        if (obj == null || obj instanceof Resp) {
+            return obj
+        }
+
+        Resp.one(obj)
     }
 
-    abstract Resp hi(Req req)
+    abstract Object hi(Req req)
 
     boolean isUriMatch(String uriInput, Req req = null) {
         if (uri == uriInput) {

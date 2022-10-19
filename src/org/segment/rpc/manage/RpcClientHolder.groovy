@@ -12,6 +12,7 @@ import java.util.concurrent.ConcurrentHashMap
 @CompileStatic
 @Singleton
 @Slf4j
+// for dashboard
 class RpcClientHolder {
     private Map<String, RpcClient> cached = new ConcurrentHashMap<>()
     private Map<String, ZookeeperRegistry> registryCached = new ConcurrentHashMap<>()

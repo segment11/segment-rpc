@@ -1,4 +1,4 @@
-package org.segment.rpc.client
+package org.segment.rpc.client.loadbalance
 
 import groovy.transform.CompileStatic
 import org.segment.rpc.server.handler.Req
