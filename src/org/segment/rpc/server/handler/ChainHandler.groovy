@@ -129,7 +129,6 @@ class ChainHandler implements Handler {
     }
 
     private String context
-    private String contextOld
 
     synchronized ChainHandler context(String context) {
         this.context = context
@@ -143,19 +142,22 @@ class ChainHandler implements Handler {
         context + uri
     }
 
-    synchronized void group(String groupUri, Closure closure) {
-        contextOld = context
+    synchronized void group(String groupPathPrefix, Closure closure) {
         if (context) {
-            context += groupUri
+            context += groupPathPrefix
         } else {
-            context = groupUri
+            context = groupPathPrefix
         }
         closure.call()
-        context = contextOld
+        if (groupPathPrefix.length() >= context.size()) {
+            context = null
+        } else {
+            context = context[0..-(groupPathPrefix.length() + 1)]
+        }
     }
 
-    private ChainHandler add(String uri, AbstractHandler handler,
-                             CopyOnWriteArrayList<Handler> ll) {
+    private synchronized ChainHandler add(String uri, AbstractHandler handler,
+                                          CopyOnWriteArrayList<Handler> ll) {
         handler.uri = addContextPath(uri)
         removeOneThatExists(handler, ll)
         ll << handler
@@ -166,8 +168,8 @@ class ChainHandler implements Handler {
         this
     }
 
-    private ChainHandler addRegex(Pattern pattern, RegexMatchHandler handler,
-                                  CopyOnWriteArrayList<Handler> ll) {
+    private synchronized ChainHandler addRegex(Pattern pattern, RegexMatchHandler handler,
+                                               CopyOnWriteArrayList<Handler> ll) {
         handler.context = context
         handler.pattern = pattern
         removeOneThatExists(handler, ll)
