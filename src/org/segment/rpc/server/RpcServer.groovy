@@ -29,7 +29,7 @@ import org.segment.rpc.server.handler.StandardThreadExecutor
 import org.segment.rpc.server.provider.DefaultProvider
 import org.segment.rpc.server.registry.Registry
 import org.segment.rpc.server.registry.RemoteUrl
-import org.segment.rpc.stats.StatsHolder
+import org.segment.rpc.stats.StatsCollector
 
 import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
@@ -104,7 +104,6 @@ class RpcServer {
             log.info('stop metric server')
             metricsServer = null
         }
-        StatsHolder.instance.stop()
         if (registry) {
             registry.shutdown()
             registry = null
@@ -136,11 +135,12 @@ class RpcServer {
     }
 
     void start() {
-        StatsHolder.instance.init(remoteUrl)
+        StatsCollector.instance.init(remoteUrl)
         if (c.isOn('server.metric.export')) {
             if (c.isOn('server.metric.jvm.export')) {
                 DefaultExports.initialize()
             }
+            StatsCollector.instance.register()
             int metricServerPort = c.getInt('server.metric.listen.port', 8878)
             metricsServer = new HTTPServer(remoteUrl.host, metricServerPort)
             log.info('start metric server {}:{}', remoteUrl.host, metricServerPort)
