@@ -35,11 +35,11 @@ println say.hi('kerry')
 println say2.hi('kerry')
 
 def body = "hi kerry".toString()
-def resp = client.sendSync(new Req('/rpc/v1/echo', body))
+def resp = client.sendSync(new Req('/rpc/v1/echo', body).lz4())
 println '' + resp.status + ':' + resp?.body
 
 // not found
-def respEmpty = client.sendSync(new Req('/rpc/v2/echo', body))
+def respEmpty = client.sendSync(new Req('/rpc/v2/echo', body).gzip())
 println '' + respEmpty.status + ':' + respEmpty?.body
 
 // exception
