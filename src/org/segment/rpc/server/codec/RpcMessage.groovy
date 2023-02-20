@@ -39,7 +39,7 @@ class RpcMessage {
 
     @CompileStatic
     static enum CompressType {
-        NONE(1 as Byte), GZIP(2 as Byte), LZ(3 as Byte)
+        NONE(1 as Byte), GZIP(2 as Byte), LZ4(3 as Byte)
 
         byte value
 
@@ -76,7 +76,7 @@ class RpcMessage {
         }
 
         if (b == 3) {
-            return CompressType.LZ
+            return CompressType.LZ4
         }
     }
 }

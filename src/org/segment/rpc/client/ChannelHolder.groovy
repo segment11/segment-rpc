@@ -19,11 +19,7 @@ class ChannelHolder {
     }
 
     Channel getActiveExcludeOne(RemoteUrl remoteUrl, Channel excludeOne) {
-        def channels = items[remoteUrl]
-        if (!channels) {
-            return null
-        }
-        channels.getExclude(excludeOne)
+        items[remoteUrl]?.getExclude(excludeOne)
     }
 
     synchronized int getActiveNumber(RemoteUrl remoteUrl) {
@@ -56,15 +52,15 @@ class ChannelHolder {
         channels.remove(channel)
     }
 
-    synchronized boolean isLeftActive(RemoteUrl remoteUrl, Channel channel) {
+    synchronized boolean isLeftActive(RemoteUrl remoteUrl, Channel excludeOne) {
         def channels = items[remoteUrl]
         if (!channels) {
             return false
         }
-        channels.isLeftActive(channel)
+        channels.isLeftActive(excludeOne)
     }
 
-    synchronized void disconnect() {
+    synchronized void disconnectAll() {
         items.each { k, v ->
             v.close()
         }

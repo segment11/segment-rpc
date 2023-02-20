@@ -67,7 +67,7 @@ class RpcClient {
             loadBalance = null
         }
         if (channelHolder) {
-            channelHolder.disconnect()
+            channelHolder.disconnectAll()
             channelHolder = null
         }
         if (eventLoopGroup) {
@@ -272,7 +272,10 @@ class RpcClient {
     void initRpcMessage(RpcMessage msg) {
         if (c.isOn('client.send.request.use.gzip')) {
             msg.compressType = RpcMessage.CompressType.GZIP
+        } else if (c.isOn('client.send.request.use.lz4')) {
+            msg.compressType = RpcMessage.CompressType.LZ4
         }
+
         msg.serializeType = Serializer.Type.KYRO
         if (c.isOn('client.send.request.serialize.type.use.hessian')) {
             msg.serializeType = Serializer.Type.HESSIAN
@@ -288,9 +291,10 @@ class RpcClient {
 
             @Override
             void handle(RemoteUrl remoteUrl) {
-                // use local or remote ?
-//                remoteUrl.extend(c.params, false)
-                int needCreateChannelNumber = remoteUrl.getInt(RpcConf.CLIENT_CHANNEL_NUMBER_PER_SERVER, 2)
+                int needCreateChannelNumberRemote = remoteUrl.getInt(RpcConf.CLIENT_CHANNEL_NUMBER_PER_SERVER, 2)
+                int needCreateChannelNumberClient = c.getInt(RpcConf.CLIENT_CHANNEL_NUMBER_PER_SERVER, 2)
+                int needCreateChannelNumber = Math.min(needCreateChannelNumberRemote, needCreateChannelNumberClient)
+
                 int activeNumber = channelHolder.getActiveNumber(remoteUrl)
                 if (activeNumber >= needCreateChannelNumber) {
                     log.warn 'already have active channel for {} number {}', remoteUrl, activeNumber

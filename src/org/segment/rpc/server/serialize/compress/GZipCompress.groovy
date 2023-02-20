@@ -1,4 +1,4 @@
-package org.segment.rpc.server.serialize.gzip
+package org.segment.rpc.server.serialize.compress
 
 import groovy.transform.CompileStatic
 import org.segment.rpc.server.serialize.Compress
@@ -14,8 +14,14 @@ class GZipCompress implements Compress {
     byte[] compress(byte[] data) {
         def out = new ByteArrayOutputStream()
         def gzip = new GZIPOutputStream(out)
+        def is = new ByteArrayInputStream(data)
+
         try {
-            gzip.write(data)
+            byte[] buffer = new byte[BUFFER_SIZE]
+            int n
+            while (-1 != (n = is.read(buffer))) {
+                gzip.write(buffer, 0, n)
+            }
             gzip.flush()
             gzip.finish()
             return out.toByteArray()

@@ -36,18 +36,12 @@ class MultiChannel {
 
     // get one active channel round robin
     Channel getExclude(Channel excludeOne) {
-        for (int i = 0; i < channels.size(); i++) {
-            def channel = channels[i]
-            if (channel != excludeOne && channel.isActive()) {
-                return channel
-            }
-        }
-        null
+        channels.find { it.isActive() && it != excludeOne }
     }
 
     int getActiveNumber() {
         int number = 0
-        channels.each {
+        for (it in channels) {
             if (it.isActive()) {
                 number++
             }
@@ -64,27 +58,23 @@ class MultiChannel {
     }
 
     synchronized void close() {
-        channels.each { v ->
-            if (!v.isOpen()) {
+        channels.each {
+            if (!it.isOpen()) {
                 return
             }
+
+            def address = it.remoteAddress()
             try {
-                log.info 'ready to disconnect {}', v.remoteAddress()
-                v.close()
-                log.info 'done disconnect {}', v.remoteAddress()
+                log.info 'ready to disconnect {}', address
+                it.close()
+                log.info 'done disconnect {}', address
             } catch (Exception e) {
-                log.error('disconnect channel error - ' + v.remoteAddress(), e)
+                log.error('disconnect channel error - ' + address, e)
             }
         }
     }
 
-    boolean isLeftActive(Channel channel) {
-        for (int i = 0; i < channels.size(); i++) {
-            def c = channels[i]
-            if (c != channel && c.isActive()) {
-                return true
-            }
-        }
-        false
+    boolean isLeftActive(Channel excludeOne) {
+        channels.any { it.isActive() && it != excludeOne }
     }
 }

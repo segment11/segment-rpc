@@ -22,6 +22,7 @@ class ConsoleReader {
         inner.flag = false
     }
 
+    @CompileStatic
     class Inner extends Thread {
         ConsoleReader reader
 

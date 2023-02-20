@@ -214,6 +214,7 @@ class ZookeeperRegistry implements Registry {
             if (one == remoteUrl) {
                 one.ready = false
                 log.info 'all channel is inactive for {} set ready = false', one
+                break
             }
         }
     }
