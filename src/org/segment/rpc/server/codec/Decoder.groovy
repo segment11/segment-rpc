@@ -23,9 +23,9 @@ class Decoder extends LengthFieldBasedFrameDecoder {
     Decoder() {
         // + 1(version byte length 1)
         super(MAX_FRAME_LENGTH,
-                LEN + 1,
-                LEN,
-                -(LEN + 1 + LEN),
+                INT_LEN + 1,
+                INT_LEN,
+                -(INT_LEN + 1 + INT_LEN),
                 0)
     }
 
@@ -37,8 +37,8 @@ class Decoder extends LengthFieldBasedFrameDecoder {
         }
 
         def frame = decoded as ByteBuf
-        if (frame.readableBytes() < MIN_LEN) {
-            return decoded
+        if (frame.readableBytes() < HEADER_LEN) {
+            throw new IllegalArgumentException('frame length less than header length')
         }
 
         try {

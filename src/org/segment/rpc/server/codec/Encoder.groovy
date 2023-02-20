@@ -22,11 +22,10 @@ class Encoder extends MessageToByteEncoder<RpcMessage> {
 
     static final byte VERSION = 1
     // put a int
-    static final int LEN = 4
+    static final int INT_LEN = 4
     static final int MAX_FRAME_LENGTH = 8 * 1024 * 1024
-    static final int MIN_LEN = 16
-    // magic + version + fullLength int + messageType + serializeType + compressType + requestId int
-    static final int HEADER_LEN = LEN + 1 + LEN + 1 + 1 + 1 + 4
+    // magic int + version + fullLength int + messageType + serializeType + compressType + requestId int
+    static final int HEADER_LEN = INT_LEN + 1 + INT_LEN + 1 + 1 + 1 + INT_LEN
 
     private AtomicInteger requestIdGenerator = new AtomicInteger(0)
 
@@ -36,7 +35,7 @@ class Encoder extends MessageToByteEncoder<RpcMessage> {
         out.writeByte VERSION
 
         // fully len skip
-        out.writerIndex out.writerIndex() + LEN
+        out.writerIndex out.writerIndex() + INT_LEN
 
         out.writeByte message.messageType.value
         out.writeByte message.serializeType.value
@@ -44,10 +43,10 @@ class Encoder extends MessageToByteEncoder<RpcMessage> {
         out.writeInt requestIdGenerator.getAndIncrement()
 
         int fullLen = HEADER_LEN
-        def dataBytes = message.dataBytes
-        if (!message.isPingPong() && dataBytes != null) {
-            out.writeBytes(dataBytes)
-            int bodyLen = dataBytes.length
+        def bodyBytes = message.dataBytes
+        if (!message.isPingPong() && bodyBytes != null) {
+            out.writeBytes(bodyBytes)
+            int bodyLen = bodyBytes.length
             fullLen += bodyLen
         }
 
@@ -55,7 +54,7 @@ class Encoder extends MessageToByteEncoder<RpcMessage> {
 
         // fully len set
         int writeIndex = out.writerIndex()
-        out.writerIndex writeIndex - fullLen + LEN + 1
+        out.writerIndex writeIndex - fullLen + INT_LEN + 1
         out.writeInt fullLen
         out.writerIndex writeIndex
     }
