@@ -10,11 +10,8 @@ class Lz4Compress implements Compress {
     private static final int BUFFER_SIZE = 1024 * 4
 
     @Override
-    byte[] compress(byte[] data) {
-        def out = new ByteArrayOutputStream()
-        def lz = new FramedLZ4CompressorOutputStream(out)
-        def is = new ByteArrayInputStream(data)
-
+    void compress(InputStream is, OutputStream os) {
+        def lz = new FramedLZ4CompressorOutputStream(os)
         try {
             byte[] buffer = new byte[BUFFER_SIZE]
             int n
@@ -23,23 +20,21 @@ class Lz4Compress implements Compress {
             }
             lz.flush()
             lz.finish()
-            return out.toByteArray()
         } catch (IOException e) {
             throw new RuntimeException('lz4 compress error', e)
         }
     }
 
     @Override
-    byte[] decompress(byte[] data) {
-        def out = new ByteArrayOutputStream()
-        def lz = new FramedLZ4CompressorInputStream(new ByteArrayInputStream(data))
+    void decompress(InputStream is, OutputStream os) {
+        def lz = new FramedLZ4CompressorInputStream(is)
         try {
             byte[] buffer = new byte[BUFFER_SIZE]
             int n
             while ((n = lz.read(buffer)) > -1) {
-                out.write(buffer, 0, n)
+                os.write(buffer, 0, n)
             }
-            return out.toByteArray()
+            os.flush()
         } catch (IOException e) {
             throw new RuntimeException('lz4 decompress error', e)
         }
