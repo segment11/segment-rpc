@@ -8,6 +8,7 @@ import org.segment.rpc.common.Utils
 import org.segment.rpc.server.handler.AbstractHandler
 import org.segment.rpc.server.handler.Req
 import org.segment.rpc.server.handler.Resp
+import org.segment.rpc.server.provider.BeanReflector
 import org.segment.rpc.server.provider.DefaultProvider
 import org.segment.rpc.server.provider.ServiceProvider
 import org.segment.rpc.server.registry.RemoteUrl
@@ -44,8 +45,8 @@ class MethodInvokeHandler extends AbstractHandler {
     @Override
     Resp hi(Req req) {
         MethodMeta meta = req.body as MethodMeta
-        def methodWrapper = provider.lookupMethod(meta)
-        if (methodWrapper == null) {
+        def mw = provider.lookupMethod(meta)
+        if (mw == null) {
             def number = emptyNumber.incrementAndGet()
             emptyNumberGauge.labels(remoteUrl.toString(), req.context(), meta.clazz, meta.method).set(number as double)
 
@@ -55,7 +56,9 @@ class MethodInvokeHandler extends AbstractHandler {
 
         def timer = cost.labels(remoteUrl.toString(), req.context(), meta.clazz, meta.method).startTimer()
         try {
-            Object r = methodWrapper.method.invoke(methodWrapper.target, meta.args)
+            // fast method access
+            Object r = BeanReflector.get(mw.target.class, meta.method, meta.paramTypes).
+                    invoke(mw.target, meta.args)
             Resp.one(r)
         } catch (Exception e) {
             def number = failedNumber.incrementAndGet()

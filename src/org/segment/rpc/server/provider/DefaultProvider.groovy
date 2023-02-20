@@ -31,11 +31,19 @@ class DefaultProvider implements ServiceProvider {
 
     @Override
     void provide(Class interfaceClass, Object target) {
+        if (!target.class.interfaces.any { it == interfaceClass }) {
+            throw new IllegalArgumentException("target class ${target.class.name} does not implement interface ${interfaceClass.name}")
+        }
+
         def list = new CopyOnWriteArrayList<MethodWrapper>()
         def oldList = map.putIfAbsent(interfaceClass.name, list)
         def targetList = oldList ?: list
 
+        def finalTarget = target instanceof BeanCreator ? ((BeanCreator) target).create() : target
+
         for (method in interfaceClass.getMethods()) {
+            BeanReflector.get(finalTarget.class, method.name, method.parameterTypes)
+
             def meta = new MethodMeta()
             meta.clazz = interfaceClass.name
             meta.method = method.name
