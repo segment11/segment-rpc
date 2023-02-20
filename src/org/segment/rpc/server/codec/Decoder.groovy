@@ -23,9 +23,9 @@ class Decoder extends LengthFieldBasedFrameDecoder {
     Decoder() {
         // + 1(version byte length 1)
         super(MAX_FRAME_LENGTH,
-                MAGIC_NUMBER.size() + 1,
+                LEN + 1,
                 LEN,
-                -(MAGIC_NUMBER.size() + 1 + LEN),
+                -(LEN + 1 + LEN),
                 0)
     }
 
@@ -100,12 +100,9 @@ class Decoder extends LengthFieldBasedFrameDecoder {
     }
 
     private void checkMagicNumber(ByteBuf frame) {
-        byte[] tmp = new byte[MAGIC_NUMBER.length]
-        frame.readBytes(tmp)
-        for (int i = 0; i < tmp.length; i++) {
-            if (tmp[i] != MAGIC_NUMBER[i]) {
-                throw new IllegalArgumentException('magic number not match - ' + Arrays.toString(tmp))
-            }
+        def readInt = frame.readInt()
+        if (MAGIC_NUMBER_INT != readInt) {
+            throw new IllegalArgumentException('magic number not match - ' + readInt)
         }
     }
 

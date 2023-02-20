@@ -13,13 +13,12 @@ import java.util.concurrent.atomic.AtomicInteger
 
 @CompileStatic
 class Encoder extends MessageToByteEncoder<RpcMessage> {
-    static final byte[] MAGIC_NUMBER = new byte['segment'.length()]
+    static int MAGIC_NUMBER_INT = 0
 
     static {
         'segment'.eachWithIndex { it, int i ->
             def c = it as char
-            def b = c as byte
-            MAGIC_NUMBER[i] = b
+            MAGIC_NUMBER_INT += Character.getNumericValue(c)
         }
     }
 
@@ -29,7 +28,7 @@ class Encoder extends MessageToByteEncoder<RpcMessage> {
     static final int MAX_FRAME_LENGTH = 8 * 1024 * 1024
     static final int MIN_LEN = 16
     // magic + version + fullLength int + messageType + serializeType + compressType + requestId int
-    static final int HEADER_LEN = MAGIC_NUMBER.length + 1 + LEN + 1 + 1 + 1 + 4
+    static final int HEADER_LEN = LEN + 1 + LEN + 1 + 1 + 1 + 4
 
     static final String PING = 'ping'
     static final String PONG = 'pong'
@@ -38,7 +37,7 @@ class Encoder extends MessageToByteEncoder<RpcMessage> {
 
     @Override
     protected void encode(ChannelHandlerContext ctx, RpcMessage message, ByteBuf out) throws Exception {
-        out.writeBytes MAGIC_NUMBER
+        out.writeInt MAGIC_NUMBER_INT
         out.writeByte VERSION
 
         // fully len skip
@@ -66,7 +65,7 @@ class Encoder extends MessageToByteEncoder<RpcMessage> {
 
         // fully len set
         int writeIndex = out.writerIndex()
-        out.writerIndex writeIndex - fullLen + MAGIC_NUMBER.length + 1
+        out.writerIndex writeIndex - fullLen + LEN + 1
         out.writeInt fullLen
         out.writerIndex writeIndex
     }
