@@ -233,7 +233,13 @@ class RpcClient {
         def msg = new RpcMessage()
         msg.data = req
         msg.messageType = RpcMessage.MessageType.REQ
-        initRpcMessage(msg)
+
+        fillConfigItem(msg)
+        if (req.compressType != null) {
+            msg.compressType = req.compressType
+        }
+
+        msg.dataToBytes()
 
         // registry config
         int timeoutMillis = remoteUrl.getInt('client.get.response.timeout.millis', 2000)
@@ -269,7 +275,7 @@ class RpcClient {
         }
     }
 
-    void initRpcMessage(RpcMessage msg) {
+    void fillConfigItem(RpcMessage msg) {
         if (c.isOn('client.send.request.use.gzip')) {
             msg.compressType = RpcMessage.CompressType.GZIP
         } else if (c.isOn('client.send.request.use.lz4')) {

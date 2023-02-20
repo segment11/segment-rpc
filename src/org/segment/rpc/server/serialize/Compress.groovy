@@ -4,7 +4,7 @@ import groovy.transform.CompileStatic
 
 @CompileStatic
 interface Compress {
-    byte[] compress(byte[] data)
+    void compress(InputStream is, OutputStream os)
 
-    byte[] decompress(byte[] data)
+    void decompress(InputStream is, OutputStream os)
 }

@@ -11,11 +11,8 @@ class GZipCompress implements Compress {
     private static final int BUFFER_SIZE = 1024 * 4
 
     @Override
-    byte[] compress(byte[] data) {
-        def out = new ByteArrayOutputStream()
-        def gzip = new GZIPOutputStream(out)
-        def is = new ByteArrayInputStream(data)
-
+    void compress(InputStream is, OutputStream os) {
+        def gzip = new GZIPOutputStream(os)
         try {
             byte[] buffer = new byte[BUFFER_SIZE]
             int n
@@ -24,23 +21,21 @@ class GZipCompress implements Compress {
             }
             gzip.flush()
             gzip.finish()
-            return out.toByteArray()
         } catch (IOException e) {
             throw new RuntimeException('gzip compress error', e)
         }
     }
 
     @Override
-    byte[] decompress(byte[] data) {
-        def out = new ByteArrayOutputStream()
-        def gzip = new GZIPInputStream(new ByteArrayInputStream(data))
+    void decompress(InputStream is, OutputStream os) {
+        def gzip = new GZIPInputStream(is)
         try {
             byte[] buffer = new byte[BUFFER_SIZE]
             int n
             while ((n = gzip.read(buffer)) > -1) {
-                out.write(buffer, 0, n)
+                os.write(buffer, 0, n)
             }
-            return out.toByteArray()
+            os.flush()
         } catch (IOException e) {
             throw new RuntimeException('gzip decompress error', e)
         }

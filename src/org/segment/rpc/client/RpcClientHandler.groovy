@@ -8,7 +8,6 @@ import io.netty.channel.ChannelHandlerContext
 import io.netty.channel.SimpleChannelInboundHandler
 import io.netty.handler.timeout.IdleState
 import io.netty.handler.timeout.IdleStateEvent
-import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.handler.Resp
 import org.segment.rpc.server.registry.EventType
@@ -98,7 +97,6 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         Channel channel = ctx.channel()
         def msg = new RpcMessage()
         msg.messageType = RpcMessage.MessageType.PING
-        msg.data = Encoder.PING
         channel.writeAndFlush(msg).addListener(ChannelFutureListener.CLOSE_ON_FAILURE)
     }
 

@@ -8,9 +8,11 @@ class KyroSerializerTest extends Specification {
         given:
         def serializer = new KyroSerializer()
         def req = new Req('/test', [key1: 'value1'])
+        def os = new ByteArrayOutputStream()
         and:
-        def bytes = serializer.write(req)
-        def req2 = serializer.read(bytes, Req)
+        serializer.write(req, os)
+        def is = new ByteArrayInputStream(os.toByteArray())
+        def req2 = serializer.read(is, Req)
         expect:
         req != req2
         req.uuid == req2.uuid

@@ -4,8 +4,6 @@ import groovy.transform.CompileStatic
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.MessageToByteEncoder
-import org.segment.rpc.server.serialize.CompressFactory
-import org.segment.rpc.server.serialize.SerializerFactory
 import org.segment.rpc.stats.CounterInMinute
 import org.segment.rpc.stats.StatsType
 
@@ -30,9 +28,6 @@ class Encoder extends MessageToByteEncoder<RpcMessage> {
     // magic + version + fullLength int + messageType + serializeType + compressType + requestId int
     static final int HEADER_LEN = LEN + 1 + LEN + 1 + 1 + 1 + 4
 
-    static final String PING = 'ping'
-    static final String PONG = 'pong'
-
     private AtomicInteger requestIdGenerator = new AtomicInteger(0)
 
     @Override
@@ -49,16 +44,11 @@ class Encoder extends MessageToByteEncoder<RpcMessage> {
         out.writeInt requestIdGenerator.getAndIncrement()
 
         int fullLen = HEADER_LEN
-        if (!message.isPingPong()) {
-            byte[] data = SerializerFactory.create(message.serializeType).write(message.data)
-            if (message.compressType != RpcMessage.CompressType.NONE) {
-                def dataTmp = CompressFactory.create(message.compressType).compress(data)
-                fullLen += dataTmp.length
-                out.writeBytes dataTmp
-            } else {
-                fullLen += data.length
-                out.writeBytes data
-            }
+        def dataBytes = message.dataBytes
+        if (!message.isPingPong() && dataBytes != null) {
+            out.writeBytes(dataBytes)
+            int bodyLen = dataBytes.length
+            fullLen += bodyLen
         }
 
         CounterInMinute.instance.increaseAndGet(fullLen as long, StatsType.ENCODE_LENGTH)

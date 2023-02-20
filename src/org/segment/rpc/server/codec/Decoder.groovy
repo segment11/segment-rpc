@@ -3,6 +3,7 @@ package org.segment.rpc.server.codec
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.netty.buffer.ByteBuf
+import io.netty.buffer.ByteBufInputStream
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder
 import org.segment.rpc.server.handler.Req
@@ -14,7 +15,6 @@ import org.segment.rpc.stats.CounterInMinute
 import org.segment.rpc.stats.StatsType
 
 import static org.segment.rpc.server.codec.Encoder.*
-import static org.segment.rpc.server.codec.RpcMessage.CompressType
 import static org.segment.rpc.server.codec.RpcMessage.MessageType
 
 @CompileStatic
@@ -70,30 +70,29 @@ class Decoder extends LengthFieldBasedFrameDecoder {
                 requestId: requestId
         )
         if (messageType == MessageType.PING.value) {
-            message.data = Encoder.PING
             return message
         }
 
         if (messageType == MessageType.PONG.value) {
-            message.data = Encoder.PONG
             return message
         }
 
         int bodyLen = fullLen - HEADER_LEN
         if (bodyLen > 0) {
-            byte[] body = new byte[bodyLen]
-            frame.readBytes(body)
+            def byteBuf = frame.readBytes(bodyLen)
+            def is = new ByteBufInputStream(byteBuf)
 
-            byte[] bodyTmp = body
-            if (compressType != CompressType.NONE.value) {
-                bodyTmp = CompressFactory.create(message.compressType).decompress(body)
-            }
-
+            def compress = CompressFactory.create(message.compressType)
             def serializer = SerializerFactory.create(message.serializeType)
-            if (messageType == MessageType.REQ.value) {
-                message.data = serializer.read(bodyTmp, Req)
-            } else if (messageType == MessageType.RESP.value) {
-                message.data = serializer.read(bodyTmp, Resp)
+            Class clazz = messageType == MessageType.REQ.value ? Req : Resp
+
+            if (compress == null) {
+                message.data = serializer.read(is, clazz)
+            } else {
+                def pipeIn = new PipedInputStream()
+                def pipeOut = new PipedOutputStream(pipeIn)
+                compress.decompress(is, pipeOut)
+                message.data = serializer.read(pipeIn, clazz)
             }
         }
         message

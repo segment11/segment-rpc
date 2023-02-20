@@ -11,20 +11,25 @@ class GZipCompressTest extends Specification {
         def compress = new GZipCompress()
         def req = new Req('/test', [key1: 'value1'])
         and:
-        def bytes = serializer.write(req)
-        def bytesCompressed = compress.compress(bytes)
-        def bytesDecompressed = compress.decompress(bytesCompressed)
-        def req2 = serializer.read(bytes, Req)
-        def req3 = serializer.read(bytesDecompressed, Req)
+        def os = new ByteArrayOutputStream()
+        def pipeIn = new PipedInputStream()
+        def pipeIn2 = new PipedInputStream()
+        def pipeOut = new PipedOutputStream(pipeIn)
+        def pipeOut2 = new PipedOutputStream(pipeIn2)
+
+        serializer.write(req, pipeOut)
+        compress.compress(pipeIn, os)
+
+        def bytes = os.toByteArray()
+        println "after compress bytes: ${bytes.length}"
+
+        def is = new ByteArrayInputStream(bytes)
+        compress.decompress(is, pipeOut2)
+        def req2 = serializer.read(pipeIn2, Req)
         expect:
         req != req2
         req.uuid == req2.uuid
         req.uri == req2.uri
         req.body == req2.body
-
-        req != req3
-        req.uuid == req3.uuid
-        req.uri == req3.uri
-        req.body == req3.body
     }
 }

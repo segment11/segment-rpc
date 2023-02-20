@@ -30,9 +30,9 @@ class KyroSerializer implements Serializer {
     }
 
     @Override
-    def <T> T read(byte[] data, Class<T> clz) {
+    def <T> T read(InputStream is, Class<T> clz) {
         def kryo = pool.borrow()
-        def input = new Input(new ByteArrayInputStream(data))
+        def input = new Input(is)
         try {
             return kryo.readObject(input, clz)
         } finally {
@@ -42,15 +42,14 @@ class KyroSerializer implements Serializer {
     }
 
     @Override
-    byte[] write(Object obj) {
+    int write(Object obj, OutputStream os) {
         def kryo = pool.borrow()
-        def os = new ByteArrayOutputStream()
         def output = new Output(os)
         try {
             kryo.writeObject(output, obj)
             output.flush()
             output.close()
-            return os.toByteArray()
+            return output.total()
         } finally {
             pool.release(kryo)
         }

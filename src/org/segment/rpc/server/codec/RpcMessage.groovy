@@ -1,7 +1,9 @@
 package org.segment.rpc.server.codec
 
 import groovy.transform.CompileStatic
+import org.segment.rpc.server.serialize.CompressFactory
 import org.segment.rpc.server.serialize.Serializer
+import org.segment.rpc.server.serialize.SerializerFactory
 
 @CompileStatic
 class RpcMessage {
@@ -14,6 +16,31 @@ class RpcMessage {
     int requestId
 
     Serializable data
+
+    byte[] dataBytes
+
+    // dot not run in netty io threads
+    void dataToBytes() {
+        if (data == null) {
+            return
+        }
+
+        def serializer = SerializerFactory.create(serializeType)
+        def compress = CompressFactory.create(compressType)
+        def os = new ByteArrayOutputStream()
+
+        if (compress == null) {
+            serializer.write(data, os)
+        } else {
+            def pipeIn = new PipedInputStream()
+            def pipeOut = new PipedOutputStream(pipeIn)
+
+            serializer.write(data, pipeOut)
+            compress.compress(pipeIn, os)
+        }
+
+        dataBytes = os.toByteArray()
+    }
 
     boolean isPingPong() {
         messageType == MessageType.PING || messageType == MessageType.PONG

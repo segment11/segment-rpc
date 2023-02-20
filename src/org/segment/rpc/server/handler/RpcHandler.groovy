@@ -9,7 +9,6 @@ import io.netty.handler.timeout.IdleState
 import io.netty.handler.timeout.IdleStateEvent
 import org.segment.rpc.client.ChannelHolder
 import org.segment.rpc.manage.ClientChannelInfo
-import org.segment.rpc.server.codec.Encoder
 import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.registry.RemoteUrl
 import org.segment.rpc.stats.CounterInMinute
@@ -79,9 +78,8 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
         try {
             executor.execute {
                 RpcMessage result = msg.response()
-                if (msg.messageType == RpcMessage.MessageType.PING) {
-                    result.data = Encoder.PONG
-                } else {
+                // PING send not data
+                if (!msg.isPingPong()) {
                     Req req = msg.data as Req
                     def resp = ChainHandler.instance.handle(req)
                     if (resp) {
@@ -93,6 +91,7 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
                         empty.uuid = req.uuid
                         result.data = empty
                     }
+                    result.dataToBytes()
                 }
 
                 writeAndFlush(ctx, result)
@@ -115,6 +114,7 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
             RpcMessage result = msg.response()
             result.data = resp
+            result.dataToBytes()
 
             writeAndFlush(ctx, result)
         }

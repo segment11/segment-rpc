@@ -4,9 +4,9 @@ import groovy.transform.CompileStatic
 
 @CompileStatic
 interface Serializer {
-    public <T> T read(byte[] data, Class<T> clz)
+    public <T> T read(InputStream is, Class<T> clz)
 
-    byte[] write(Object obj)
+    int write(Object obj, OutputStream os)
 
     @CompileStatic
     static enum Type {
