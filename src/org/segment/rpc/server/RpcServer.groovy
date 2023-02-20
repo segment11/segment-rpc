@@ -109,7 +109,7 @@ class RpcServer {
             registry = null
         }
         if (channelHolder) {
-            channelHolder.disconnect()
+            channelHolder.disconnectAll()
             channelHolder = null
         }
         if (workerGroup) {

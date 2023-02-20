@@ -1,4 +1,4 @@
-package org.segment.rpc.server.serialize.gzip
+package org.segment.rpc.server.serialize.compress
 
 import org.segment.rpc.server.handler.Req
 import org.segment.rpc.server.serialize.kyro.KyroSerializer
