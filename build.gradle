@@ -35,8 +35,8 @@ sourceSets {
 }
 
 dependencies {
-    compile 'org.slf4j:slf4j-api:1.7.30'
-    compile 'org.codehaus.groovy:groovy-all:2.4.19'
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.30'
+    compile group: 'org.codehaus.groovy', name: 'groovy', version: '2.4.19'
     compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.17.1'
     compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.17.1'
     compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.17.1'
@@ -46,9 +46,15 @@ dependencies {
     compile 'io.netty:netty-codec:4.1.82.Final'
     compile 'io.netty:netty-common:4.1.82.Final'
     compile 'io.netty:netty-buffer:4.1.82.Final'
-    compile 'com.esotericsoftware:kryo:4.0.2'
-    compile 'com.google.guava:guava:30.1.1-jre'
-    compile 'commons-beanutils:commons-beanutils:1.9.4'
+
+    compile group: 'com.esotericsoftware', name: 'kryo', version: '4.0.2'
+    compile group: 'com.google.guava', name: 'guava', version: '30.1.1-jre'
+
+    compile group: 'net.bytebuddy', name: 'byte-buddy', version: '1.14.0'
+
+    compile group: 'commons-beanutils', name: 'commons-beanutils', version: '1.9.4'
+
+    compile group: 'co.paralleluniverse', name: 'quasar-core', version: '0.7.10'
 
     compile group: 'com.github.adyliu', name: 'zkclient', version: '2.2.0'
     // for local registry testing
