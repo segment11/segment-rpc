@@ -1,6 +1,5 @@
 package org.segment.rpc.manage
 
-
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.segment.rpc.client.RpcClient
@@ -31,11 +30,11 @@ class RpcClientHolder {
         one
     }
 
-    synchronized RpcClientWapper create(String connectString, String prefix) {
+    synchronized RpcClientWrapper create(String connectString, String prefix) {
         final String key = connectString + prefix
         def client = cached[key]
         if (client) {
-            return new RpcClientWapper(client: client)
+            return new RpcClientWrapper(client: client)
         }
 
         Map<String, Object> map = [:]
@@ -49,7 +48,7 @@ class RpcClientHolder {
         def one = new RpcClient(c)
         log.info 'created client - ' + key
         cached[key] = one
-        new RpcClientWapper(client: one, isFirstCreated: true)
+        new RpcClientWrapper(client: one, isFirstCreated: true)
     }
 
     void stop() {
