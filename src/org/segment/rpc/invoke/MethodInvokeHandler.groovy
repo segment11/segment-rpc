@@ -4,6 +4,7 @@ import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.prometheus.client.Gauge
 import io.prometheus.client.Summary
+import org.segment.rpc.common.Utils
 import org.segment.rpc.server.handler.AbstractHandler
 import org.segment.rpc.server.handler.Req
 import org.segment.rpc.server.handler.Resp
@@ -61,8 +62,12 @@ class MethodInvokeHandler extends AbstractHandler {
             failedNumberGauge.labels(remoteUrl.toString(), req.context(), meta.clazz, meta.method).set(number as double)
 
             log.error('method invoke error - ' + meta.toString(), e)
-            Resp.fail(e.message)
-//            Resp.fail(e.message + Utils.getStackTraceString(e.cause))
+
+            if (remoteUrl.isOn('server.fail.message.with.stacktrace')) {
+                Resp.fail(e.message + '\r\n' + Utils.getStackTraceString(e.cause))
+            } else {
+                Resp.fail(e.message)
+            }
         } finally {
             timer.observeDuration()
         }
