@@ -52,6 +52,8 @@ dependencies {
 
     compile group: 'net.bytebuddy', name: 'byte-buddy', version: '1.14.0'
 
+    compile group: 'com.esotericsoftware', name: 'reflectasm', version: '1.11.9'
+
     compile group: 'org.apache.commons', name: 'commons-compress', version: '1.22'
     compile group: 'commons-beanutils', name: 'commons-beanutils', version: '1.9.4'
 
