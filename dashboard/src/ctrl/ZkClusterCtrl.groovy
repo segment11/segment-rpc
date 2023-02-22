@@ -42,7 +42,7 @@ h.group('/zk') {
         def registry = RpcClientHolder.instance.getRegistry(map)
         registry.refreshToLocal(false)
 
-        def list = registry.cachedLocalList
+        def list = registry.removeUrlListCachedLocal
         def r = list.groupBy {
             it.context
         }
@@ -63,7 +63,7 @@ h.group('/zk') {
         url.updatedTime = new Date()
         registry.register(url)
         [flag: true, ready: url.ready]
-    }.post('/update') { req, resp ->
+    }.post('/update-registry') { req, resp ->
         def id = req.param('id')
         assert id
 

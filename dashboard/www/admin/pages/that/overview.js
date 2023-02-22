@@ -13,7 +13,9 @@ md.controller('MainCtrl', function ($scope, $http, uiTips, uiValid) {
     $scope.tmp.name = params.name;
     $scope.tmp.des = params.des;
 
+    uiTips.loading();
     $http.get('/dashboard/zk/overview', { params: { id: id } }).success(function (data) {
+        uiTips.unloading();
         $scope.tmp.contextList = data.contextList;
         tmp.r = data.r;
 
@@ -34,7 +36,9 @@ md.controller('MainCtrl', function ($scope, $http, uiTips, uiValid) {
 
         var p = { id: id, context: $scope.tmp.context };
         setTimeout(function(){
+            uiTips.unloading();
             $http.get('/dashboard/remote/overview', { params: p }).success(function (data) {
+                uiTips.unloading();
                 $scope.uriList = data.uriList;
                 $scope.methodList = data.methodList;
             });
@@ -121,7 +125,7 @@ md.controller('MainCtrl', function ($scope, $http, uiTips, uiValid) {
             x[it.key] = it.value;
         });
         tmp.editOne.params = x;
-        $http.post('/dashboard/zk/update?id=' + id, tmp.editOne).success(function(data){
+        $http.post('/dashboard/zk/update-registry?id=' + id, tmp.editOne).success(function(data){
             if(data.flag){
                 uiTips.alert('Update Ok');
                 $scope.ctrl.isShowParamsUpdate = false;
@@ -140,7 +144,7 @@ md.controller('MainCtrl', function ($scope, $http, uiTips, uiValid) {
                 uiTips.alert('weight number must >= 0 and <= 10 - ' + val);
                 return;
             }
-			$http.post('/dashboard/zk/update?id=' + id, one).success(function(data){
+			$http.post('/dashboard/zk/update-registry?id=' + id, one).success(function(data){
 				if(data.flag){
 				    uiTips.alert('Done - Now Weight : ' + one.weight);
 				}

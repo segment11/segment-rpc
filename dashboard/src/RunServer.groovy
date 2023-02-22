@@ -62,4 +62,4 @@ reader.quitHandler = {
 }
 reader.read()
 
-server.start(8888)
+server.start(c.getInt('port', 8888))
