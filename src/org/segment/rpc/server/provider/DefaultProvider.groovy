@@ -31,7 +31,7 @@ class DefaultProvider implements ServiceProvider {
 
     @Override
     void provide(Class interfaceClass, Object target) {
-        if (!target.class.interfaces.any { it == interfaceClass }) {
+        if (!target.class.interfaces.any { it == interfaceClass } && !(target instanceof BeanCreator)) {
             throw new IllegalArgumentException("target class ${target.class.name} does not implement interface ${interfaceClass.name}")
         }
 
@@ -42,7 +42,11 @@ class DefaultProvider implements ServiceProvider {
         def finalTarget = target instanceof BeanCreator ? ((BeanCreator) target).create() : target
 
         for (method in interfaceClass.getMethods()) {
-            BeanReflector.get(finalTarget.class, method.name, method.parameterTypes)
+            // lazy create if final target is null
+            if (finalTarget) {
+                // prepare fast method access cache
+                BeanReflector.get(finalTarget.class, method.name, method.parameterTypes)
+            }
 
             def meta = new MethodMeta()
             meta.clazz = interfaceClass.name
@@ -65,7 +69,9 @@ class DefaultProvider implements ServiceProvider {
             return null
         }
         def target = beans.get(meta.clazz)
-        if (target instanceof BeanCreator) {
+        if (target instanceof LazyBeanCreator) {
+            wrapper.target = ((LazyBeanCreator) target).createLazy()
+        } else if (target instanceof BeanCreator) {
             wrapper.target = ((BeanCreator) target).create()
         } else {
             wrapper.target = target

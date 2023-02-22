@@ -11,7 +11,7 @@ import org.w3c.dom.Element
 @CompileStatic
 @Slf4j
 class RpcCallerBeanParser implements BeanDefinitionParser {
-    final static String BEAN_NAME_SUUFIX = 'Remote'
+    final static String BEAN_NAME_SUFFIX = 'Remote'
     final static String FACTORY_BEAN_NAME = 'proxyCallerFactoryBean'
     final static String FACTORY_BEAN_CLASS_NAME = 'com.segment.rpc.spring.ProxyCallerFactoryBean'
 
@@ -33,10 +33,9 @@ class RpcCallerBeanParser implements BeanDefinitionParser {
             log.info 'add proxy caller factory bean'
         }
 
-
         def nameSimple = interfaceClassName.split(/\./)[-1]
         // Bean -> beanRemote
-        def beanName = nameSimple[0].toLowerCase() + nameSimple[1..-1] + BEAN_NAME_SUUFIX
+        def beanName = nameSimple[0].toLowerCase() + nameSimple[1..-1] + BEAN_NAME_SUFFIX
         if (!parserContext.registry.containsBeanDefinition(beanName)) {
             def bd = new RootBeanDefinition()
             bd.setLazyInit(true)
@@ -50,7 +49,7 @@ class RpcCallerBeanParser implements BeanDefinitionParser {
             values.addPropertyValue('context', context)
 
             parserContext.registry.registerBeanDefinition(beanName, bd)
-            log.info 'define proxy caller bean {} interface:{} context:{}', beanName, interfaceClassName, context
+            log.info 'define proxy caller bean: {}, interface: {}, context: {}', beanName, interfaceClassName, context
         }
 
         null

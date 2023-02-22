@@ -2,7 +2,6 @@ package com.segment.rpc.spring
 
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
-import org.segment.rpc.server.provider.BeanCreator
 import org.segment.rpc.server.provider.DefaultProvider
 import org.springframework.beans.factory.support.AbstractBeanDefinition
 import org.springframework.beans.factory.support.BeanDefinitionRegistry
@@ -34,18 +33,7 @@ class RpcProviderBeanDefinitionScanner extends ClassPathBeanDefinitionScanner {
         }
 
         Class clazz = annotation.interfaceClass()
-        DefaultProvider.instance.provide(clazz, new BeanCreator() {
-            @Override
-            Object create() {
-                def beans = context.getBeansOfType(clazz)
-                if (!beans) {
-                    return null
-                }
-                // exclude Remote for client
-                def entry = beans.find { !it.key.endsWith(RpcCallerBeanParser.BEAN_NAME_SUUFIX) }
-                entry?.value
-            }
-        })
-        log.info 'add bean provide - {}', clazz.name
+        DefaultProvider.instance.provide(clazz, new ContextLazyBeanCreator(context, clazz))
+        log.info 'add bean provide, class name: {}', clazz.name
     }
 }
