@@ -161,12 +161,12 @@ class RpcClient {
             def future = send(req)
             return future.get(ms, TimeUnit.MILLISECONDS)
         } catch (TimeoutException e) {
-            log.warn('get response timeout and uri: {}, retries: {}, uuid: {}, timeout: {}ms',
-                    req.uri, req.retries, req.uuid, ms)
+            log.warn('get response timeout and uri: {}, this retry time: {}, uuid: {}, timeout: {}ms',
+                    req.uri, req.thisRetryTime, req.uuid, ms)
             responseFutureHolder.remove(req.uuid)
 
             if (req.needRetry) {
-                log.warn 'send sync retry and uri: {}, retries: {}, uuid: {}', req.uri, req.retries, req.uuid
+                log.warn 'send sync retry and uri: {}, this retry time: {}, uuid: {}', req.uri, req.thisRetryTime, req.uuid
                 req.needRetry = false
                 return sendSync(req, ms)
             } else {
@@ -183,49 +183,50 @@ class RpcClient {
 
         def remoteUrl = loadBalance.select(registry.discover(req), req)
         if (remoteUrl == null) {
-            log.warn('no remote server found and server: {}, uri: {}, retries: {}, uuid: {}',
-                    remoteUrl, req.uri, req.retries, req.uuid)
+            log.warn('no remote server found and server: {}, uri: {}, this retry time: {}, uuid: {}',
+                    remoteUrl, req.uri, req.thisRetryTime, req.uuid)
             throw new RemoteUrlDownException('server not found')
         }
 
-        int retries = remoteUrl.getInt('client.send.retries', 1)
-        for (int i = req.retries; i <= retries; i++) {
+        int clientRetries = remoteUrl.getInt('client.send.retries', 1)
+        for (int i = req.thisRetryTime; i <= clientRetries; i++) {
             // for timeout retry
-            req.retries = i + 1
-            req.needRetry = i < retries
+            req.needRetry = i < clientRetries
             try {
                 return sendOnce(remoteUrl, req)
             } catch (RemoteUrlDownException e) {
                 registry.unavailable(remoteUrl)
                 // need change a remote url, reset retries
-                req.retries = 0
+                req.thisRetryTime = 0
                 req.needRetry = true
 
                 int remoteDownRetryWaitMillis = c.getInt('client.remote.down.retry.wait.millis', 200)
-                log.warn('change server, wait send retry and server: {}, uri: {}, retries: {}, uuid: {}, wait: {}ms',
-                        remoteUrl, req.uri, req.retries, req.uuid, remoteDownRetryWaitMillis)
+                log.warn('change server, wait send retry and server: {}, uri: {}, this retry time: {}, uuid: {}, wait: {}ms',
+                        remoteUrl, req.uri, req.thisRetryTime, req.uuid, remoteDownRetryWaitMillis)
                 Thread.sleep(remoteDownRetryWaitMillis)
                 return send(req)
             } catch (RuntimeException e) {
-                log.warn('send request error and server: {}, uri: {}, retries: {}, uuid: {}, message: {}',
-                        remoteUrl, req.uri, req.retries, req.uuid, e.message)
+                log.warn('send request error and server: {}, uri: {}, this retry time: {}, uuid: {}, message: {}',
+                        remoteUrl, req.uri, req.thisRetryTime, req.uuid, e.message)
                 if (!req.needRetry) {
                     throw e
                 }
+            } finally {
+                req.thisRetryTime = i + 1
             }
         }
 
-        log.warn 'why!! and server: {}, uri: {}, retries: {}, uuid: {}', remoteUrl, req.uri, req.retries, req.uuid
+        log.warn 'why!! and server: {}, uri: {}, this retry time: {}, uuid: {}', remoteUrl, req.uri, req.thisRetryTime, req.uuid
         throw new RuntimeException('send request error')
     }
 
-    private CompletableFuture<Resp> sendOnce(RemoteUrl remoteUrl, Req req) {
-        def channel = channelHolder.getActive(remoteUrl)
+    private CompletableFuture<Resp> sendOnce(RemoteUrl remoteUrl, Req req, Channel targetChannel = null) {
+        def channel = targetChannel ?: channelHolder.getActive(remoteUrl)
         // when registry found new server list, do connect and add to channel holder already
         // if server crash down
         if (channel == null) {
-            log.warn('get channel null and server: {}, uri: {}, retries: {}, uuid: {}',
-                    remoteUrl, req.uri, req.retries, req.uuid)
+            log.warn('get channel null and server: {}, uri: {}, this retry time: {}, uuid: {}',
+                    remoteUrl, req.uri, req.thisRetryTime, req.uuid)
             // if server crash down, connect fail
             throw new RemoteUrlDownException('channel get null - ' + remoteUrl)
         }
@@ -234,7 +235,8 @@ class RpcClient {
         msg.data = req
         msg.messageType = RpcMessage.MessageType.REQ
 
-        fillConfigItem(msg)
+        fillDefaultConfigItem(msg)
+        // reset compress type if need
         if (req.compressType != null) {
             msg.compressType = req.compressType
         }
@@ -257,13 +259,13 @@ class RpcClient {
         writeFuture.cancel(true)
         responseFutureHolder.remove(req.uuid)
 
-        // this channel is down, check if there is another active channel
+        // if this channel is down, use another active channel
         def channelAnother = channelHolder.getActiveExcludeOne(remoteUrl, channel)
         if (channelAnother) {
             // try again
-            log.warn('send once retry and server: {}, uri: {}, retries: {}, uuid: {}',
-                    remoteUrl, req.uri, req.retries, req.uuid)
-            return sendOnce(remoteUrl, req)
+            log.warn('send once retry and server: {}, uri: {}, this retry time: {}, uuid: {}',
+                    remoteUrl, req.uri, req.thisRetryTime, req.uuid)
+            return sendOnce(remoteUrl, req, channelAnother)
         }
 
         if (writeFuture.cause()) {
@@ -275,7 +277,7 @@ class RpcClient {
         }
     }
 
-    void fillConfigItem(RpcMessage msg) {
+    void fillDefaultConfigItem(RpcMessage msg) {
         if (c.isOn('client.send.request.use.gzip')) {
             msg.compressType = RpcMessage.CompressType.GZIP
         } else if (c.isOn('client.send.request.use.lz4')) {

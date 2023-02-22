@@ -21,12 +21,12 @@ class ZookeeperRegistry implements Registry {
 
     private ScheduledExecutorService scheduler
 
-    private List<RemoteUrl> cachedLocalList = new LinkedList<RemoteUrl>()
+    private List<RemoteUrl> remoteUrlListCachedLocal = new LinkedList<RemoteUrl>()
 
     private EventHandler eventHandler = new EventHandler()
 
-    List<RemoteUrl> getCachedLocalList() {
-        return cachedLocalList
+    List<RemoteUrl> getRemoveUrlListCachedLocal() {
+        return remoteUrlListCachedLocal
     }
 
     private AtomicInteger count = new AtomicInteger(0)
@@ -75,12 +75,12 @@ class ZookeeperRegistry implements Registry {
         def number = count.get()
         if (number % 100 == 0) {
             log.info 'get list from registry {} count {}', getList.collect { it.toStringView() }.toString(), number
-            log.info 'local list {}', cachedLocalList.collect { it.toStringView() }.toString()
+            log.info 'local list {}', remoteUrlListCachedLocal.collect { it.toStringView() }.toString()
         }
 
         // do merge list to local
         for (one in getList) {
-            def localOne = cachedLocalList.find { it == one }
+            def localOne = remoteUrlListCachedLocal.find { it == one }
             if (localOne) {
                 // if local ready is false, need try connect
                 boolean isNeedFire = !localOne.ready
@@ -98,13 +98,13 @@ class ZookeeperRegistry implements Registry {
                 if (initReadyFalse) {
                     one.ready = false
                 }
-                cachedLocalList << one
+                remoteUrlListCachedLocal << one
                 log.info 'added new one - ' + one.toStringView()
                 eventHandler.fire(one, EventType.NEW_ADDED)
             }
         }
 
-        def it = cachedLocalList.iterator()
+        def it = remoteUrlListCachedLocal.iterator()
         while (it.hasNext()) {
             def one = it.next()
             if (!getList.contains(one)) {
@@ -160,7 +160,7 @@ class ZookeeperRegistry implements Registry {
 
             @Override
             void handle(RemoteUrl remoteUrl) {
-                for (one in cachedLocalList) {
+                for (one in getRemoveUrlListCachedLocal()) {
                     if (one == remoteUrl) {
                         one.ready = true
                         log.info 'channel is active for {} set ready = true', one
@@ -210,7 +210,7 @@ class ZookeeperRegistry implements Registry {
 
     @Override
     void unavailable(RemoteUrl remoteUrl) {
-        for (one in cachedLocalList) {
+        for (one in remoteUrlListCachedLocal) {
             if (one == remoteUrl) {
                 one.ready = false
                 log.info 'all channel is inactive for {} set ready = false', one
@@ -225,7 +225,7 @@ class ZookeeperRegistry implements Registry {
         if (context == null) {
             return []
         }
-        cachedLocalList.findAll { context == it.context && it.ready }
+        remoteUrlListCachedLocal.findAll { context == it.context && it.ready }
     }
 
     @Override

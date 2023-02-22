@@ -35,9 +35,9 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RpcMessage msg) throws Exception {
         if (msg.messageType == RpcMessage.MessageType.PONG) {
-            def number = count.incrementAndGet()
-            if (number % 10 == 0) {
-                log.info 'heartbeat {}, count {}', msg.data, number
+            def loopCount = count.incrementAndGet()
+            if (loopCount % 10 == 0) {
+                log.info 'heartbeat, loop count {}', loopCount
             }
             return
         }
@@ -46,7 +46,8 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
             return
         }
 
-        Resp resp = msg.data as Resp
+        msg.bytesToData()
+        Resp resp = (Resp) msg.data
         responseFutureHolder.complete(resp)
     }
 

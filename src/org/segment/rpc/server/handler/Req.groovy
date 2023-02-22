@@ -15,7 +15,7 @@ class Req extends HeaderSupport implements Serializable {
 
     Object body
 
-    int retries = 0
+    int thisRetryTime = 0
 
     boolean needRetry = false
 
