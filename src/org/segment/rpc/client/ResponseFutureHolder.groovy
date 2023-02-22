@@ -28,8 +28,8 @@ class ResponseFutureHolder {
                     boolean isTimeout = (v.createdTime + v.timeoutMillis + buffer) < current
                     if (isTimeout) {
                         // will not happen, as it is already removed in RpcClient.sendSync
-                        // if debug cost too long
-                        log.warn 'why here response future timeout uuid {}', k
+                        // unless debug cost too long time
+                        log.warn 'why here response future timeout? uuid: {}', k
                         items.remove(k)
                         v.future.completeExceptionally(new TimeoutException())
                     }
@@ -38,7 +38,7 @@ class ResponseFutureHolder {
                 log.error('response future clean error', e)
             }
         }, delaySeconds, interval, TimeUnit.SECONDS)
-        log.info 'start interval check response future holder, interval seconds {}', interval
+        log.info 'start response future holder interval check, interval: {}s', interval
     }
 
     void stop() {
@@ -67,16 +67,17 @@ class ResponseFutureHolder {
 
     void complete(Resp resp) {
         def uuid = resp.uuid
+        // never happen
         if (!uuid) {
-            log.warn 'no uuid resp, status: {}, message: {} ', resp.status, resp.message
+            log.warn 'resp has not uuid, status: {}, message: {} ', resp.status, resp.message
             return
         }
 
         def wrapper = items.remove(uuid)
         if (!wrapper) {
             // timeout removed already
-            log.warn('resp get no process future timeout ? uuid {}', uuid)
-//            throw new IllegalStateException('resp get no process future as uuid: ' + resp.uuid)
+            log.warn('resp get no process future, timeout? uuid: {}', uuid)
+//            throw new IllegalStateException('resp get no process future, timeout? uuid: ' + resp.uuid)
             return
         }
         wrapper.future.complete(resp)

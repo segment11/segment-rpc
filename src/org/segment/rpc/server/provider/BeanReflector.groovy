@@ -41,7 +41,7 @@ class BeanReflector {
             return ma
         }
 
-        log.info 'get method access for class: {}', clz.name
+        log.info 'get method access for class: {}, put it to local cache', clz.name
         def ma2 = MethodAccess.get(clz)
         def old = cachedMa.putIfAbsent(key, ma2)
         if (old) {
@@ -63,7 +63,7 @@ class BeanReflector {
             return new BeanReflector(ma, maIndexCached)
         }
 
-        log.info 'get method access index for method: {}', key
+        log.info 'get method access index for method: {}, put it to local cache', key
         def maIndex = paramTypes ? ma.getIndex(methodName, paramTypes) : ma.getIndex(methodName)
         cachedMaIndex.putIfAbsent(key, maIndex)
         return new BeanReflector(ma, maIndex)

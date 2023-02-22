@@ -171,8 +171,8 @@ class RpcServer {
             }
             StatsCollector.instance.register()
             int metricServerPort = c.getInt('server.metric.listen.port', 8878)
+            log.info('metric server ready to start: {}:{}', remoteUrl.host, metricServerPort)
             metricsServer = new HTTPServer(remoteUrl.host, metricServerPort)
-            log.info('start metric server {}:{}', remoteUrl.host, metricServerPort)
         }
 
         channelHolder = new ChannelHolder()
@@ -208,7 +208,7 @@ class RpcServer {
 
             registry.register(remoteUrl)
 
-            log.info('server ready to start {}', remoteUrl)
+            log.info('server ready to start: {}', remoteUrl)
             def future = bootstrap.bind(remoteUrl.host, remoteUrl.port).sync()
             future.channel().closeFuture().sync()
         } catch (InterruptedException e) {

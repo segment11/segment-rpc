@@ -27,7 +27,7 @@ class ChainHandler implements Handler {
             help('rpc handler cost time').
             labelNames('address', 'context', 'uri').
             quantile(0.5.doubleValue(), 0.05.doubleValue()).
-            quantile(0.9.doubleValue(), 0.01.doubleValue()).register()
+            quantile(0.95.doubleValue(), 0.01.doubleValue()).register()
 
     private Gauge handlerNumber = Gauge.build().name('handler_number').
             help('handler number').labelNames('address', 'context').register()
@@ -161,7 +161,7 @@ class ChainHandler implements Handler {
         handler.uri = addContextPath(uri)
         removeOneThatExists(handler, ll)
         ll << handler
-        log.info 'add handler {}', handler.uri
+        log.info 'add handler: {}', handler.uri
         if (remoteUrl) {
             handlerNumber.labels(getAddress(), remoteUrl.context).set(ll.size() as double)
         }

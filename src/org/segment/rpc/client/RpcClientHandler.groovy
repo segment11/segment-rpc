@@ -37,7 +37,7 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         if (msg.messageType == RpcMessage.MessageType.PONG) {
             def loopCount = count.incrementAndGet()
             if (loopCount % 10 == 0) {
-                log.info 'heartbeat, loop count {}', loopCount
+                log.info 'heartbeat, loop count: {}', loopCount
             }
             return
         }
@@ -63,7 +63,7 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         InetSocketAddress socketAddress = channel.remoteAddress() as InetSocketAddress
         def address = socketAddress.address
         def remoteUrl = new RemoteUrl(address.hostAddress, socketAddress.port)
-        log.info 'channel active local {} remote {}', localAddress, remoteUrl
+        log.info 'channel active, local address: {}, remote server: {}', localAddress, remoteUrl
         registry.fire(remoteUrl, EventType.ACTIVE)
 
         super.channelActive(ctx)
@@ -76,7 +76,7 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         InetSocketAddress socketAddress = channel.remoteAddress() as InetSocketAddress
         def address = socketAddress.address
         def remoteUrl = new RemoteUrl(address.hostAddress, socketAddress.port)
-        log.info 'channel inactive local {} remote {}', localAddress, remoteUrl
+        log.info 'channel inactive, local address: {}, remote server: {}', localAddress, remoteUrl
 
         // if all channel is inactive, fire event, so that the registry(discover) will set ready false
         def isLeftActive = channelHolder.isLeftActive(remoteUrl, channel)
@@ -98,9 +98,9 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         if (state != IdleState.WRITER_IDLE) {
             return
         }
-        log.debug('write idle {}, do ping', ctx.channel().remoteAddress())
 
         Channel channel = ctx.channel()
+        log.debug('write idle, remote address: {}, do ping', channel.remoteAddress())
         def msg = new RpcMessage()
         msg.messageType = RpcMessage.MessageType.PING
         channel.writeAndFlush(msg).addListener(ChannelFutureListener.CLOSE_ON_FAILURE)
@@ -126,7 +126,7 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         if (!isLeftActive) {
             registry.fire(remoteUrl, EventType.INACTIVE)
             channelHolder.remove(remoteUrl)
-            log.info 'as all is inactive so remove channel holder for - ' + remoteUrl
+            log.info 'remove from channel holder, remote server: {}', remoteUrl
         }
     }
 }

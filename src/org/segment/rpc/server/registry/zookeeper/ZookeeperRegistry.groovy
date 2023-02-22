@@ -73,11 +73,10 @@ class ZookeeperRegistry implements Registry {
             }
         }
 
-        count.getAndIncrement()
-        def number = count.get()
-        if (number % 100 == 0) {
-            log.info 'get list from registry {} count {}', getList.collect { it.toStringView() }.toString(), number
-            log.info 'local list {}', remoteUrlListCachedLocal.collect { it.toStringView() }.toString()
+        def loopCount = count.getAndIncrement()
+        if (loopCount % 100 == 0) {
+            log.info 'get list from registry: {}, loop count {}', getList.collect { it.toStringView() }.toString(), loopCount
+            log.info 'local cached list: {}', remoteUrlListCachedLocal.collect { it.toStringView() }.toString()
         }
 
         // do merge list to local
@@ -120,8 +119,7 @@ class ZookeeperRegistry implements Registry {
             }
         }
 
-        remoteUrlListCachedLocal.groupBy { it.context }.each { context, subList ->
-            remoteUrlListCachedLocalByContext.put(context, subList)
+        remoteUrlListCachedLocal.groupBy { it.context }.each { context, subList -> remoteUrlListCachedLocalByContext.put(context, subList.sort())
         }
     }
 
@@ -173,7 +171,7 @@ class ZookeeperRegistry implements Registry {
                 for (one in getRemoveUrlListCachedLocal()) {
                     if (one == remoteUrl) {
                         one.ready = true
-                        log.info 'channel is active for {} set ready = true', one
+                        log.info 'channel active, remove server: {}, set ready = true', one
                     }
                 }
             }
@@ -200,14 +198,14 @@ class ZookeeperRegistry implements Registry {
         def zkClient = connect()
         if (!zkClient.exists(path)) {
             zkClient.createPersistent(path, true)
-            log.info 'created path {}', path
+            log.info 'ready to registry, created zookeeper path: {}', path
         }
 
         def mapper = new ObjectMapper()
         def data = mapper.writeValueAsBytes(remoteUrl)
 
         def targetPath = path + '/' + remoteUrl.toString()
-        log.info 'ready to registry to zookeeper path {}', targetPath
+        log.info 'ready to registry, target zookeeper path: {}', targetPath
 
         if (zkClient.exists(targetPath)) {
             // overwrite, for dashboard management
@@ -215,18 +213,16 @@ class ZookeeperRegistry implements Registry {
         } else {
             zkClient.createEphemeral(targetPath, data)
         }
-        log.info 'done write data {}', remoteUrl.toStringView()
+        log.info 'done write registry data: {}', remoteUrl.toStringView()
     }
 
     @Override
     void unavailable(RemoteUrl remoteUrl) {
         synchronized (remoteUrlListCachedLocal) {
-            for (one in remoteUrlListCachedLocal) {
-                if (one == remoteUrl) {
-                    one.ready = false
-                    log.info 'all channel is inactive for {} set ready = false', one
-                    break
-                }
+            def target = remoteUrlListCachedLocal.find { it == remoteUrl }
+            if (target) {
+                target.ready = false
+                log.info 'channel inactive, remote server: {}, set ready = false', target
             }
         }
     }

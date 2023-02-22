@@ -41,6 +41,7 @@ DefaultProvider.instance.provide(SayInterface.class, new SayImpl())
 def reader = ConsoleReader.instance
 reader.quitHandler = {
     println 'stop...'
+    server.beforeStop()
     server.stop()
 }
 reader.read()
@@ -49,6 +50,7 @@ if (isServerStopAfterSomeTime) {
     Thread.start {
         Thread.sleep(100000)
         reader.stop()
+//        server.beforeStop()
         server.stop()
     }
 }

@@ -50,7 +50,7 @@ class MethodInvokeHandler extends AbstractHandler {
             def number = emptyNumber.incrementAndGet()
             emptyNumberGauge.labels(remoteUrl.toString(), req.context(), meta.clazz, meta.method).set(number as double)
 
-            log.warn('method not found {}', meta.toString())
+            log.warn('method not found: {}', meta.toString())
             return Resp.fail('method not found', Resp.Status.NOT_FOUND)
         }
 

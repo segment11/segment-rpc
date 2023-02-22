@@ -4,7 +4,7 @@ import groovy.transform.CompileStatic
 import org.segment.rpc.common.AbstractConf
 
 @CompileStatic
-class RemoteUrl extends AbstractConf {
+class RemoteUrl extends AbstractConf implements Comparable<RemoteUrl> {
     static final int DEFAULT_WEIGHT = 10
 
     String host
@@ -55,5 +55,10 @@ class RemoteUrl extends AbstractConf {
 
     String toStringView() {
         "${context}/${host}:${port},ready=${ready},weight=${weight},updatedTime:${updatedTime}".toString()
+    }
+
+    @Override
+    int compareTo(RemoteUrl o) {
+        this.toString() <=> o.toString()
     }
 }

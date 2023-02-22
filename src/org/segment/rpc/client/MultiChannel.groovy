@@ -70,11 +70,11 @@ class MultiChannel {
 
             def address = it.remoteAddress()
             try {
-                log.info 'ready to disconnect {}', address
+                log.info 'ready to disconnect channel, remote address: {}', address
                 it.close()
-                log.info 'done disconnect {}', address
+                log.info 'done disconnect channel, remote address: {}', address
             } catch (Exception e) {
-                log.error('disconnect channel error - ' + address, e)
+                log.error('disconnect channel error, remote address: ' + address, e)
             }
         }
     }
@@ -87,10 +87,10 @@ class MultiChannel {
 
             def address = it.remoteAddress()
             try {
-                log.info 'ready to send message type {} to {}', msg.messageType, address
+                log.info 'ready to send a message, message type: {}, remote address: {}', msg.messageType, address
                 it.writeAndFlush(msg)
             } catch (Exception e) {
-                log.error('send message type error ' + msg.messageType + ' to ' + address, e)
+                log.error('send a message error, message type: ' + msg.messageType + ', remote address: ' + address, e)
             }
         }
     }

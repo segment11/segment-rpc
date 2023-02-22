@@ -140,13 +140,13 @@ class RpcClient {
         def isSuccess = future.isSuccess()
 
         if (result && isSuccess) {
-            log.info 'client connect to remote server ok {}', address.toString()
+            log.info 'client connect ok, remote server: {}', remoteUrl
             return future.channel()
         }
 
         if (future.cause() != null) {
             future.cancel(true)
-            log.error('client connect to remote server error ' + address.toString(), future.cause())
+            log.error('client connect error, remote server: ' + remoteUrl.toString(), future.cause())
             return null
         }
         null
@@ -161,12 +161,13 @@ class RpcClient {
             def future = send(req)
             return future.get(ms, TimeUnit.MILLISECONDS)
         } catch (TimeoutException e) {
-            log.warn('get response timeout and uri: {}, this retry time: {}, uuid: {}, timeout: {}ms',
+            log.warn('send sync get response timeout, uri: {}, this retry time: {}, uuid: {}, timeout: {}ms',
                     req.uri, req.thisRetryTime, req.uuid, ms)
             responseFutureHolder.remove(req.uuid)
 
             if (req.needRetry) {
-                log.warn 'send sync retry and uri: {}, this retry time: {}, uuid: {}', req.uri, req.thisRetryTime, req.uuid
+                log.warn 'send sync get response timeout, do retry, uri: {}, this retry time: {}, uuid: {}',
+                        req.uri, req.thisRetryTime, req.uuid
                 req.needRetry = false
                 return sendSync(req, ms)
             } else {
@@ -183,7 +184,7 @@ class RpcClient {
 
         def remoteUrl = loadBalance.select(registry.discover(req), req)
         if (remoteUrl == null) {
-            log.warn('no remote server found and server: {}, uri: {}, this retry time: {}, uuid: {}',
+            log.warn('remote server not found, remote server: {}, uri: {}, this retry time: {}, uuid: {}',
                     remoteUrl, req.uri, req.thisRetryTime, req.uuid)
             throw new RemoteUrlDownException('server not found')
         }
@@ -200,8 +201,8 @@ class RpcClient {
                 req.thisRetryTime = 0
                 req.needRetry = true
 
-                int remoteDownRetryWaitMillis = c.getInt('client.remote.down.retry.wait.millis', 200)
-                log.warn('change server, wait send retry and server: {}, uri: {}, this retry time: {}, uuid: {}, wait: {}ms',
+                int remoteDownRetryWaitMillis = c.getInt('client.remote.down.retry.wait.millis', 50)
+                log.warn('remote server down, wait send retry another, remote server: {}, uri: {}, this retry time: {}, uuid: {}, wait: {}ms',
                         remoteUrl, req.uri, req.thisRetryTime, req.uuid, remoteDownRetryWaitMillis)
                 Thread.sleep(remoteDownRetryWaitMillis)
                 return send(req)
@@ -216,7 +217,8 @@ class RpcClient {
             }
         }
 
-        log.warn 'why!! and server: {}, uri: {}, this retry time: {}, uuid: {}', remoteUrl, req.uri, req.thisRetryTime, req.uuid
+        log.warn 'why!! remote server: {}, uri: {}, this retry time: {}, uuid: {}',
+                remoteUrl, req.uri, req.thisRetryTime, req.uuid
         throw new RuntimeException('send request error')
     }
 
@@ -225,10 +227,10 @@ class RpcClient {
         // when registry found new server list, do connect and add to channel holder already
         // if server crash down
         if (channel == null) {
-            log.warn('get channel null and server: {}, uri: {}, this retry time: {}, uuid: {}',
+            log.warn('channel not found, remove server: {}, uri: {}, this retry time: {}, uuid: {}',
                     remoteUrl, req.uri, req.thisRetryTime, req.uuid)
             // if server crash down, connect fail
-            throw new RemoteUrlDownException('channel get null - ' + remoteUrl)
+            throw new RemoteUrlDownException('channel not found, remote server: ' + remoteUrl)
         }
 
         def msg = new RpcMessage()
@@ -263,17 +265,17 @@ class RpcClient {
         def channelAnother = channelHolder.getActiveExcludeOne(remoteUrl, channel)
         if (channelAnother) {
             // try again
-            log.warn('send once retry and server: {}, uri: {}, this retry time: {}, uuid: {}',
+            log.warn('send once timeout, do retry, remote server: {}, uri: {}, this retry time: {}, uuid: {}',
                     remoteUrl, req.uri, req.thisRetryTime, req.uuid)
             return sendOnce(remoteUrl, req, channelAnother)
         }
 
         if (writeFuture.cause()) {
-            throw new RemoteUrlDownException('channel not writable - ' + remoteUrl + ' : '
+            throw new RemoteUrlDownException('channel is not writable, remote server: ' + remoteUrl + ', ex: '
                     + writeFuture.cause().class.name)
         } else {
             // timeout
-            throw new RemoteUrlDownException('channel not writable - ' + remoteUrl)
+            throw new RemoteUrlDownException('channel write timeout, remote server: ' + remoteUrl)
         }
     }
 
@@ -300,10 +302,10 @@ class RpcClient {
             @Override
             void handle(RemoteUrl remoteUrl) {
                 if (remoteUrl.weight == 0) {
-                    log.warn 'server weight is 0, ignore and server: {}', remoteUrl
+                    log.warn 'server weight is 0, need not connect, remote server: {}', remoteUrl
                     int activeNumber = channelHolder.getActiveNumber(remoteUrl)
                     if (activeNumber > 0) {
-                        log.warn 'server weight is 0, but have active channel, close and server: {}', remoteUrl
+                        log.warn 'server weight is 0, but have active channel, disconnect, remote server: {}', remoteUrl
                         registry.unavailable(remoteUrl)
                         channelHolder.disconnect(remoteUrl)
                     }
@@ -316,17 +318,17 @@ class RpcClient {
 
                 int activeNumber = channelHolder.getActiveNumber(remoteUrl)
                 if (activeNumber >= needCreateChannelNumber) {
-                    log.warn 'already have active channel for {} number {}', remoteUrl, activeNumber
+                    log.warn 'already have active channel, remote server: {}, active number {}', remoteUrl, activeNumber
                     return
                 }
 
-                log.warn 'need create channel for {} number {}', remoteUrl, needCreateChannelNumber - activeNumber
+                log.warn 'need connect channel, remote server: {}, need create number: {}', remoteUrl, needCreateChannelNumber - activeNumber
                 for (int i = activeNumber; i < needCreateChannelNumber; i++) {
                     def newOne = RpcClient.this.doConnect(remoteUrl)
                     if (newOne) {
                         channelHolder.add(remoteUrl, newOne)
                     } else {
-                        log.warn 'do connect failed - {}', remoteUrl
+                        log.warn 'do connect failed, remote server: {}', remoteUrl
                     }
                 }
             }
