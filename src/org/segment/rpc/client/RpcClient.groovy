@@ -299,6 +299,17 @@ class RpcClient {
 
             @Override
             void handle(RemoteUrl remoteUrl) {
+                if (remoteUrl.weight == 0) {
+                    log.warn 'server weight is 0, ignore and server: {}', remoteUrl
+                    int activeNumber = channelHolder.getActiveNumber(remoteUrl)
+                    if (activeNumber > 0) {
+                        log.warn 'server weight is 0, but have active channel, close and server: {}', remoteUrl
+                        registry.unavailable(remoteUrl)
+                        channelHolder.disconnect(remoteUrl)
+                    }
+                    return
+                }
+
                 int needCreateChannelNumberRemote = remoteUrl.getInt(RpcConf.CLIENT_CHANNEL_NUMBER_PER_SERVER, 2)
                 int needCreateChannelNumberClient = c.getInt(RpcConf.CLIENT_CHANNEL_NUMBER_PER_SERVER, 2)
                 int needCreateChannelNumber = Math.min(needCreateChannelNumberRemote, needCreateChannelNumberClient)

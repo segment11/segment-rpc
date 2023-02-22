@@ -15,6 +15,7 @@ class Resp implements Serializable {
         }
     }
 
+    // only for decode
     Resp() {}
 
     static Resp one(Object body = null) {
@@ -36,7 +37,7 @@ class Resp implements Serializable {
     }
 
     static Resp reject(String message) {
-        fail(message, Status.REJECT)
+        fail(message, Status.NOT_FOUND)
     }
 
     String uuid

@@ -8,6 +8,8 @@ class ClientChannelInfo implements Comparable<ClientChannelInfo> {
 
     String address
 
+    ClientChannelInfo() {}
+
     ClientChannelInfo(String address) {
         this.address = address
     }

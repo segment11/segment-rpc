@@ -22,6 +22,7 @@ import org.segment.rpc.invoke.MethodInvokeHandler
 import org.segment.rpc.invoke.ProxyCreator
 import org.segment.rpc.server.codec.Decoder
 import org.segment.rpc.server.codec.Encoder
+import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.handler.ChainHandler
 import org.segment.rpc.server.handler.Resp
 import org.segment.rpc.server.handler.RpcHandler
@@ -82,20 +83,48 @@ class RpcServer {
         initThreadPoolExecutor()
 
         Runtime.addShutdownHook {
+            beforeStop()
             stop()
         }
     }
 
     private void initThreadPoolExecutor() {
-        int minWorkerThread = c.getInt('server.handler.thread.pool.min', 10)
-        int maxWorkerThread = c.getInt('server.handler.thread.pool.max', 20)
-        int workerQueueSize = c.getInt('server.handler.thread.pool.queue.size', 100)
+        int coreWorkerThread = c.getInt('server.handler.thread.pool.core', 100)
+        int maxWorkerThread = c.getInt('server.handler.thread.pool.max', 200)
+        int workerQueueSize = c.getInt('server.handler.thread.pool.queue.size', 1000)
 
         def threadFactory = new ThreadFactoryBuilder()
                 .setNameFormat('rpc-handler-port-' + remoteUrl.port + "-%d")
                 .setDaemon(false).build()
-        executor = new StandardThreadExecutor(minWorkerThread, maxWorkerThread, workerQueueSize, threadFactory)
+        executor = new StandardThreadExecutor(coreWorkerThread, maxWorkerThread, workerQueueSize, threadFactory)
         executor.prestartAllCoreThreads()
+    }
+
+    void beforeStop() {
+        if (!remoteUrl) {
+            throw new IllegalStateException('server not start yet')
+        }
+
+        log.warn 'before stop'
+
+        remoteUrl.ready = false
+        remoteUrl.weight = 0
+
+        if (registry) {
+            log.info 'set server weight to 0'
+            registry.register(remoteUrl)
+        }
+
+        // broadcast client channels
+        if (channelHolder) {
+            log.info 'broadcast disconnect message to all client'
+            def msg = new RpcMessage()
+            msg.messageType = RpcMessage.MessageType.DISCONNECT
+            channelHolder.broadcast(remoteUrl, msg)
+
+            def sec = c.getInt('server.before.stop.wait.seconds', 2)
+            Thread.sleep(1000 * sec)
+        }
     }
 
     void stop() {
@@ -185,6 +214,7 @@ class RpcServer {
         } catch (InterruptedException e) {
             log.error('server start interrupted error', e)
         } finally {
+            beforeStop()
             stop()
         }
     }

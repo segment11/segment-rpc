@@ -33,9 +33,16 @@ class Req extends HeaderSupport implements Serializable {
         this
     }
 
+    // only for decode
     Req() {}
 
     Req(String uri, Object body = null) {
+        if (uri == null) {
+            throw new IllegalArgumentException('uri is null')
+        }
+        if (!uri.startsWith('/')) {
+            throw new IllegalArgumentException('uri must start with /')
+        }
         this.uri = uri
         this.body = body
     }
@@ -44,20 +51,16 @@ class Req extends HeaderSupport implements Serializable {
 
     // /rpc/a/b -> /rpc
     String context() {
-        if (!uri) {
-            return null
-        }
-
         if (contextCached) {
             return contextCached
         }
 
-        def arr = uri.split('/')
-        if (arr.length > 1) {
-            contextCached = '/' + arr[1]
-            return contextCached
+        if (uri == '/') {
+            return '/'
         }
 
-        null
+        def arr = uri.split('/')
+        contextCached = '/' + arr[1]
+        return contextCached
     }
 }

@@ -3,6 +3,7 @@ package org.segment.rpc.client
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.netty.channel.Channel
+import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.registry.RemoteUrl
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -49,6 +50,10 @@ class MultiChannel {
         number
     }
 
+    boolean isLeftActive(Channel excludeOne) {
+        channels.any { it.isActive() && it != excludeOne }
+    }
+
     synchronized void add(Channel channel) {
         channels.add(channel)
     }
@@ -74,7 +79,19 @@ class MultiChannel {
         }
     }
 
-    boolean isLeftActive(Channel excludeOne) {
-        channels.any { it.isActive() && it != excludeOne }
+    synchronized void broadcast(RpcMessage msg) {
+        channels.each {
+            if (!it.isActive()) {
+                return
+            }
+
+            def address = it.remoteAddress()
+            try {
+                log.info 'ready to send message type {} to {}', msg.messageType, address
+                it.writeAndFlush(msg)
+            } catch (Exception e) {
+                log.error('send message type error ' + msg.messageType + ' to ' + address, e)
+            }
+        }
     }
 }

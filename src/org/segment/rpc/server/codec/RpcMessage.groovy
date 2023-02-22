@@ -78,7 +78,7 @@ class RpcMessage {
 
     @CompileStatic
     static enum MessageType {
-        REQ(1 as Byte), RESP(2 as Byte), PING(3 as Byte), PONG(4 as Byte)
+        REQ(1 as Byte), RESP(2 as Byte), PING(3 as Byte), PONG(4 as Byte), DISCONNECT(-1 as Byte)
 
         byte value
 
@@ -113,6 +113,10 @@ class RpcMessage {
 
         if (b == 4) {
             return MessageType.PONG
+        }
+
+        if (b == -1) {
+            return MessageType.DISCONNECT
         }
     }
 

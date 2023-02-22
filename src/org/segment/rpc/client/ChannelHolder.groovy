@@ -2,6 +2,7 @@ package org.segment.rpc.client
 
 import groovy.transform.CompileStatic
 import io.netty.channel.Channel
+import org.segment.rpc.server.codec.RpcMessage
 import org.segment.rpc.server.registry.RemoteUrl
 
 import java.util.concurrent.ConcurrentHashMap
@@ -60,10 +61,22 @@ class ChannelHolder {
         channels.isLeftActive(excludeOne)
     }
 
+    synchronized void disconnect(RemoteUrl remoteUrl) {
+        items.remove(remoteUrl)?.close()
+    }
+
     synchronized void disconnectAll() {
         items.each { k, v ->
             v.close()
         }
         items.clear()
+    }
+
+    synchronized void broadcast(RemoteUrl remoteUrl, RpcMessage msg) {
+        def channels = items[remoteUrl]
+        if (!channels) {
+            return
+        }
+        channels.broadcast(msg)
     }
 }

@@ -42,6 +42,11 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
             return
         }
 
+        if (msg.messageType == RpcMessage.MessageType.DISCONNECT) {
+            this.exceptionCaught(ctx, new RemoteUrlDownException('receive disconnect message'))
+            return
+        }
+
         if (msg.messageType != RpcMessage.MessageType.RESP) {
             return
         }
@@ -103,15 +108,21 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
     @Override
     void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        def isDisconnect = cause instanceof RemoteUrlDownException
+
         def channel = ctx.channel()
-        log.error('client handle exception - ' + channel.remoteAddress(), cause)
+        InetSocketAddress socketAddress = channel.remoteAddress() as InetSocketAddress
+        if (!isDisconnect) {
+            log.error('client handle exception - ' + socketAddress, cause)
+        } else {
+            log.warn 'client handle disconnect - ' + socketAddress + ' - ' + cause.message
+        }
         ctx.close()
 
-        InetSocketAddress socketAddress = channel.remoteAddress() as InetSocketAddress
         def address = socketAddress.address
         def remoteUrl = new RemoteUrl(address.hostAddress, socketAddress.port)
 
-        def isLeftActive = channelHolder.isLeftActive(remoteUrl, channel)
+        def isLeftActive = isDisconnect ? false : channelHolder.isLeftActive(remoteUrl, channel)
         if (!isLeftActive) {
             registry.fire(remoteUrl, EventType.INACTIVE)
             channelHolder.remove(remoteUrl)

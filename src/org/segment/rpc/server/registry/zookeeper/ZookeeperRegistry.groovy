@@ -23,6 +23,8 @@ class ZookeeperRegistry implements Registry {
 
     private List<RemoteUrl> remoteUrlListCachedLocal = new LinkedList<RemoteUrl>()
 
+    private Map<String, List<RemoteUrl>> remoteUrlListCachedLocalByContext = new HashMap<String, List<RemoteUrl>>()
+
     private EventHandler eventHandler = new EventHandler()
 
     List<RemoteUrl> getRemoveUrlListCachedLocal() {
@@ -82,6 +84,10 @@ class ZookeeperRegistry implements Registry {
         for (one in getList) {
             def localOne = remoteUrlListCachedLocal.find { it == one }
             if (localOne) {
+                if (localOne.toStringView() == one.toStringView()) {
+                    continue
+                }
+
                 // if local ready is false, need try connect
                 boolean isNeedFire = !localOne.ready
 
@@ -112,6 +118,10 @@ class ZookeeperRegistry implements Registry {
                 log.info 'removed old one - ' + one.toStringView()
                 eventHandler.fire(one, EventType.OLD_REMOVED)
             }
+        }
+
+        remoteUrlListCachedLocal.groupBy { it.context }.each { context, subList ->
+            remoteUrlListCachedLocalByContext.put(context, subList)
         }
     }
 
@@ -210,22 +220,20 @@ class ZookeeperRegistry implements Registry {
 
     @Override
     void unavailable(RemoteUrl remoteUrl) {
-        for (one in remoteUrlListCachedLocal) {
-            if (one == remoteUrl) {
-                one.ready = false
-                log.info 'all channel is inactive for {} set ready = false', one
-                break
+        synchronized (remoteUrlListCachedLocal) {
+            for (one in remoteUrlListCachedLocal) {
+                if (one == remoteUrl) {
+                    one.ready = false
+                    log.info 'all channel is inactive for {} set ready = false', one
+                    break
+                }
             }
         }
     }
 
     @Override
     List<RemoteUrl> discover(Req req) {
-        def context = req.context()
-        if (context == null) {
-            return []
-        }
-        remoteUrlListCachedLocal.findAll { context == it.context && it.ready }
+        remoteUrlListCachedLocalByContext.get(req.context())?.findAll { it.ready && it.weight > 0 }
     }
 
     @Override
