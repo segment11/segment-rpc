@@ -80,14 +80,15 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
                 RpcMessage result = msg.response()
                 // PING send not data
                 if (!msg.isPingPong()) {
-                    Req req = msg.data as Req
+                    msg.bytesToData()
+                    Req req = (Req) msg.data
                     def resp = ChainHandler.instance.handle(req)
                     if (resp) {
                         // for future complete
                         resp.uuid = req.uuid
                         result.data = resp
                     } else {
-                        def empty = new Resp(status: Resp.Status.NOT_FOUND)
+                        def empty = Resp.notFound('not found')
                         empty.uuid = req.uuid
                         result.data = empty
                     }
@@ -105,16 +106,21 @@ class RpcHandler extends SimpleChannelInboundHandler<RpcMessage> {
         } catch (RejectedExecutionException e) {
             CounterInMinute.instance.increaseAndGet(1, StatsType.REJECT_NUMBER)
 
-            def resp = Resp.fail('thread pool reject')
-            if (!msg.isPingPong()) {
-                Req req = msg.data as Req
-                log.warn 'thread pool reject, request id {}', req.uuid
-                resp.uuid = req.uuid
-            }
-
             RpcMessage result = msg.response()
-            result.data = resp
-            result.dataToBytes()
+            // PING send not data
+            if (!msg.isPingPong()) {
+                msg.bytesToData()
+                Req req = (Req) msg.data
+                log.warn 'thread pool reject, request id {}', req.uuid
+
+                def resp = Resp.reject('thread pool reject')
+                resp.uuid = req.uuid
+
+                result.data = resp
+                result.dataToBytes()
+            } else {
+                log.warn 'thread pool reject, ping pong'
+            }
 
             writeAndFlush(ctx, result)
         }

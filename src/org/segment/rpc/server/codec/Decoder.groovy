@@ -3,14 +3,9 @@ package org.segment.rpc.server.codec
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import io.netty.buffer.ByteBuf
-import io.netty.buffer.ByteBufInputStream
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder
-import org.segment.rpc.server.handler.Req
-import org.segment.rpc.server.handler.Resp
-import org.segment.rpc.server.serialize.CompressFactory
 import org.segment.rpc.server.serialize.Serializer
-import org.segment.rpc.server.serialize.SerializerFactory
 import org.segment.rpc.stats.CounterInMinute
 import org.segment.rpc.stats.StatsType
 
@@ -79,21 +74,9 @@ class Decoder extends LengthFieldBasedFrameDecoder {
 
         int bodyLen = fullLen - HEADER_LEN
         if (bodyLen > 0) {
-            def byteBuf = frame.readBytes(bodyLen)
-            def is = new ByteBufInputStream(byteBuf)
-
-            def compress = CompressFactory.create(message.compressType)
-            def serializer = SerializerFactory.create(message.serializeType)
-            Class clazz = messageType == MessageType.REQ.value ? Req : Resp
-
-            if (compress == null) {
-                message.data = serializer.read(is, clazz)
-            } else {
-                def pipeIn = new PipedInputStream()
-                def pipeOut = new PipedOutputStream(pipeIn)
-                compress.decompress(is, pipeOut)
-                message.data = serializer.read(pipeIn, clazz)
-            }
+            byte[] bodyBytes = new byte[bodyLen]
+            frame.readBytes(bodyBytes)
+            message.dataBytes = bodyBytes
         }
         message
     }

@@ -1,6 +1,8 @@
 package org.segment.rpc.server.codec
 
 import groovy.transform.CompileStatic
+import org.segment.rpc.server.handler.Req
+import org.segment.rpc.server.handler.Resp
 import org.segment.rpc.server.serialize.CompressFactory
 import org.segment.rpc.server.serialize.Serializer
 import org.segment.rpc.server.serialize.SerializerFactory
@@ -40,6 +42,27 @@ class RpcMessage {
         }
 
         dataBytes = os.toByteArray()
+    }
+
+    void bytesToData() {
+        if (dataBytes == null) {
+            return
+        }
+
+        def compress = CompressFactory.create(compressType)
+        def serializer = SerializerFactory.create(serializeType)
+        Class clazz = messageType == MessageType.REQ ? Req : Resp
+
+        def is = new ByteArrayInputStream(dataBytes)
+
+        if (compress == null) {
+            data = serializer.read(is, clazz)
+        } else {
+            def pipeIn = new PipedInputStream()
+            def pipeOut = new PipedOutputStream(pipeIn)
+            compress.decompress(is, pipeOut)
+            data = serializer.read(pipeIn, clazz)
+        }
     }
 
     boolean isPingPong() {

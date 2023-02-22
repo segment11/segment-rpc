@@ -6,7 +6,7 @@ import groovy.transform.CompileStatic
 class Resp implements Serializable {
     @CompileStatic
     static enum Status {
-        OK(200), NOT_FOUND(404), INTERNAL_EX(500)
+        OK(200), NOT_FOUND(404), REJECT(403), INTERNAL_EX(500)
 
         int value
 
@@ -19,6 +19,7 @@ class Resp implements Serializable {
 
     static Resp one(Object body = null) {
         def resp = new Resp()
+        resp.status = Status.OK
         resp.body = body
         resp
     }
@@ -30,9 +31,17 @@ class Resp implements Serializable {
         resp
     }
 
+    static Resp notFound(String message) {
+        fail(message, Status.NOT_FOUND)
+    }
+
+    static Resp reject(String message) {
+        fail(message, Status.REJECT)
+    }
+
     String uuid
 
-    Status status = Status.OK
+    Status status
 
     String message
 
