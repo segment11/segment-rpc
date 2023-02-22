@@ -7,23 +7,31 @@ import org.segment.rpc.server.handler.Resp
 import org.segment.rpc.server.provider.DefaultProvider
 import org.slf4j.LoggerFactory
 
+boolean isEchoSleep = false
+boolean isServerStopAfterSomeTime = false
+boolean isDoLog = false
+
 def log = LoggerFactory.getLogger(this.getClass())
 def server = new RpcServer()
 
 def h = ChainHandler.instance
 h.context('/rpc').group('/v1') {
     h.get('/echo') { req ->
-        log.info req.body
+        if (isDoLog) {
+            log.info req.body
+        }
 
-        long ms = 10 + new Random().nextInt(50)
-        Thread.currentThread().sleep(ms)
+        if (isEchoSleep) {
+            long ms = 10 + new Random().nextInt(10)
+            Thread.currentThread().sleep(ms)
+        }
         1
     }.get('/ex') { req ->
         Resp.fail('error')
     }.get('/timeout') { req ->
-//        if (req.retries == 0) {
+        if (req.thisRetryTime == 0) {
             Thread.sleep(3000)
-//        }
+        }
         1
     }
 }
@@ -37,11 +45,12 @@ reader.quitHandler = {
 }
 reader.read()
 
-Thread.start {
-    // mock server down normally
-    Thread.sleep(10000)
-    reader.stop()
-    server.stop()
+if (isServerStopAfterSomeTime) {
+    Thread.start {
+        Thread.sleep(100000)
+        reader.stop()
+        server.stop()
+    }
 }
 
 server.start()

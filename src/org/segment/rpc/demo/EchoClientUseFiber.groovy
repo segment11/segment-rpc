@@ -1,5 +1,8 @@
 package org.segment.rpc.demo
 
+import co.paralleluniverse.fibers.Fiber
+import co.paralleluniverse.fibers.SuspendExecution
+import co.paralleluniverse.strands.SuspendableRunnable
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import org.segment.rpc.client.RpcClient
@@ -11,7 +14,6 @@ import org.slf4j.LoggerFactory
 
 import java.util.concurrent.ConcurrentSkipListSet
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.Executors
 import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -58,12 +60,12 @@ try {
     println 'timeout and ignore'
 }
 
-int threadNumber = 10000
+int fiberNumber = 10000
 
 AtomicInteger okCount = new AtomicInteger(0)
 AtomicInteger rejectCount = new AtomicInteger(0)
 AtomicInteger errorCount = new AtomicInteger(0)
-def latch = new CountDownLatch(threadNumber)
+def latch = new CountDownLatch(fiberNumber)
 
 Set<String> uuidSet = new ConcurrentSkipListSet<>()
 
@@ -71,7 +73,7 @@ def beginT = System.currentTimeMillis()
 
 @CompileStatic
 @Slf4j
-class InnerThread implements Runnable {
+class Inner implements SuspendableRunnable {
     AtomicInteger okCount
     AtomicInteger rejectCount
     AtomicInteger errorCount
@@ -84,7 +86,7 @@ class InnerThread implements Runnable {
     int i
 
     @Override
-    void run() {
+    void run() throws SuspendExecution, InterruptedException {
         try {
             def req = new Req('/rpc/v1/echo', "hi ${i}".toString())
             uuidSet << req.uuid
@@ -103,7 +105,7 @@ class InnerThread implements Runnable {
                 }
 
                 // mock do business
-                Thread.sleep(20)
+                Fiber.sleep(20)
             } catch (Exception e) {
                 if (e instanceof TimeoutException) {
                     log.warn('client send timeout, uuid: ' + req.uuid)
@@ -118,11 +120,10 @@ class InnerThread implements Runnable {
     }
 }
 
-def executor = Executors.newCachedThreadPool()
-
-threadNumber.times { i ->
-    executor.submit new InnerThread(i: i, okCount: okCount, rejectCount: rejectCount, errorCount: errorCount,
-            latch: latch, uuidSet: uuidSet, client: client)
+fiberNumber.times { i ->
+    new Fiber<Void>('one fiber ' + i,
+            new Inner(i: i, okCount: okCount, rejectCount: rejectCount, errorCount: errorCount,
+                    latch: latch, uuidSet: uuidSet, client: client)).start()
 }
 
 latch.await()
@@ -134,5 +135,3 @@ println 'ok count - ' + okCount.get()
 println 'reject count - ' + rejectCount.get()
 println 'error count - ' + errorCount.get()
 println 'left uuid - ' + uuidSet
-
-executor.shutdown()
