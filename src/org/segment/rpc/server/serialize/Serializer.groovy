@@ -10,7 +10,7 @@ interface Serializer {
 
     @CompileStatic
     static enum Type {
-        KYRO(1 as Byte), HESSIAN(2 as Byte)
+        KYRO(1 as Byte), HESSIAN(2 as Byte), CUSTOM(3 as Byte)
 
         byte value
 
@@ -25,6 +25,10 @@ interface Serializer {
 
             if (b == 2) {
                 return HESSIAN
+            }
+
+            if (b == 3) {
+                return CUSTOM
             }
         }
     }

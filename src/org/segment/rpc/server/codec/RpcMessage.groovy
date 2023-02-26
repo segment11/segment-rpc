@@ -9,9 +9,9 @@ import org.segment.rpc.server.serialize.SerializerFactory
 
 @CompileStatic
 class RpcMessage {
-    Serializer.Type serializeType = Serializer.Type.KYRO
-
     MessageType messageType = MessageType.REQ
+
+    Serializer.Type serializeType = Serializer.Type.KYRO
 
     CompressType compressType = CompressType.NONE
 
@@ -89,7 +89,7 @@ class RpcMessage {
 
     @CompileStatic
     static enum CompressType {
-        NONE(1 as Byte), GZIP(2 as Byte), LZ4(3 as Byte)
+        NONE(1 as Byte), GZIP(2 as Byte), LZ4(3 as Byte), CUSTOM(4 as Byte)
 
         byte value
 
@@ -131,6 +131,10 @@ class RpcMessage {
 
         if (b == 3) {
             return CompressType.LZ4
+        }
+
+        if (b == 4) {
+            return CompressType.CUSTOM
         }
     }
 }

@@ -25,7 +25,9 @@ import org.segment.rpc.server.registry.EventTrigger
 import org.segment.rpc.server.registry.EventType
 import org.segment.rpc.server.registry.Registry
 import org.segment.rpc.server.registry.RemoteUrl
+import org.segment.rpc.server.serialize.CompressFactory
 import org.segment.rpc.server.serialize.Serializer
+import org.segment.rpc.server.serialize.SerializerFactory
 
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
@@ -242,6 +244,10 @@ class RpcClient {
         if (req.compressType != null) {
             msg.compressType = req.compressType
         }
+        // reset serialize type if need
+        if (req.serializeType != null) {
+            msg.serializeType = req.serializeType
+        }
 
         msg.dataToBytes()
 
@@ -284,11 +290,17 @@ class RpcClient {
             msg.compressType = RpcMessage.CompressType.GZIP
         } else if (c.isOn('client.send.request.use.lz4')) {
             msg.compressType = RpcMessage.CompressType.LZ4
+        } else {
+            msg.compressType = CompressFactory.hasVendorCompress ?
+                    RpcMessage.CompressType.CUSTOM : RpcMessage.CompressType.NONE
         }
 
-        msg.serializeType = Serializer.Type.KYRO
-        if (c.isOn('client.send.request.serialize.type.use.hessian')) {
+        if (c.isOn('client.send.request.serialize.type.use.kyro')) {
+            msg.serializeType = Serializer.Type.KYRO
+        } else if (c.isOn('client.send.request.serialize.type.use.hessian')) {
             msg.serializeType = Serializer.Type.HESSIAN
+        } else {
+            msg.serializeType = SerializerFactory.hasVendorSerializer ? Serializer.Type.CUSTOM : Serializer.Type.KYRO
         }
     }
 
