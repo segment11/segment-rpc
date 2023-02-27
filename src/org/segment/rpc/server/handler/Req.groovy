@@ -1,7 +1,7 @@
 package org.segment.rpc.server.handler
 
 import groovy.transform.CompileStatic
-import org.segment.rpc.server.codec.RpcMessage
+import org.segment.rpc.server.serialize.Compress
 import org.segment.rpc.server.serialize.Serializer
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -22,16 +22,16 @@ class Req extends HeaderSupport implements Serializable {
 
     boolean isMethodInvoke = false
 
-    RpcMessage.CompressType compressType
+    Compress.Type compressType
     Serializer.Type serializeType
 
     Req lz4() {
-        compressType = RpcMessage.CompressType.LZ4
+        compressType = Compress.Type.LZ4
         this
     }
 
     Req gzip() {
-        compressType = RpcMessage.CompressType.GZIP
+        compressType = Compress.Type.GZIP
         this
     }
 

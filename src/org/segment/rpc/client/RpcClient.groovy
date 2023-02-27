@@ -25,6 +25,7 @@ import org.segment.rpc.server.registry.EventTrigger
 import org.segment.rpc.server.registry.EventType
 import org.segment.rpc.server.registry.Registry
 import org.segment.rpc.server.registry.RemoteUrl
+import org.segment.rpc.server.serialize.Compress
 import org.segment.rpc.server.serialize.CompressFactory
 import org.segment.rpc.server.serialize.Serializer
 import org.segment.rpc.server.serialize.SerializerFactory
@@ -237,7 +238,7 @@ class RpcClient {
 
         def msg = new RpcMessage()
         msg.data = req
-        msg.messageType = RpcMessage.MessageType.REQ
+        msg.messageType = RpcMessage.Type.REQ
 
         fillDefaultConfigItem(msg)
         // reset compress type if need
@@ -287,12 +288,12 @@ class RpcClient {
 
     void fillDefaultConfigItem(RpcMessage msg) {
         if (c.isOn('client.send.request.use.gzip')) {
-            msg.compressType = RpcMessage.CompressType.GZIP
+            msg.compressType = Compress.Type.GZIP
         } else if (c.isOn('client.send.request.use.lz4')) {
-            msg.compressType = RpcMessage.CompressType.LZ4
+            msg.compressType = Compress.Type.LZ4
         } else {
             msg.compressType = CompressFactory.hasVendorCompress ?
-                    RpcMessage.CompressType.CUSTOM : RpcMessage.CompressType.NONE
+                    Compress.Type.CUSTOM : Compress.Type.NONE
         }
 
         if (c.isOn('client.send.request.serialize.type.use.kyro')) {

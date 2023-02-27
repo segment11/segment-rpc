@@ -119,7 +119,7 @@ class RpcServer {
         if (channelHolder) {
             log.info 'broadcast disconnect message to all client'
             def msg = new RpcMessage()
-            msg.messageType = RpcMessage.MessageType.DISCONNECT
+            msg.messageType = RpcMessage.Type.DISCONNECT
             channelHolder.broadcast(remoteUrl, msg)
 
             def sec = c.getInt('server.before.stop.wait.seconds', 2)

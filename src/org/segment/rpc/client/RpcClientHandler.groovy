@@ -34,7 +34,7 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, RpcMessage msg) throws Exception {
-        if (msg.messageType == RpcMessage.MessageType.PONG) {
+        if (msg.messageType == RpcMessage.Type.PONG) {
             def loopCount = count.incrementAndGet()
             if (loopCount % 10 == 0) {
                 log.info 'heartbeat, loop count: {}', loopCount
@@ -42,12 +42,12 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
             return
         }
 
-        if (msg.messageType == RpcMessage.MessageType.DISCONNECT) {
+        if (msg.messageType == RpcMessage.Type.DISCONNECT) {
             this.exceptionCaught(ctx, new RemoteUrlDownException('receive disconnect message'))
             return
         }
 
-        if (msg.messageType != RpcMessage.MessageType.RESP) {
+        if (msg.messageType != RpcMessage.Type.RESP) {
             return
         }
 
@@ -102,7 +102,7 @@ class RpcClientHandler extends SimpleChannelInboundHandler<RpcMessage> {
         Channel channel = ctx.channel()
         log.debug('write idle, remote address: {}, do ping', channel.remoteAddress())
         def msg = new RpcMessage()
-        msg.messageType = RpcMessage.MessageType.PING
+        msg.messageType = RpcMessage.Type.PING
         channel.writeAndFlush(msg).addListener(ChannelFutureListener.CLOSE_ON_FAILURE)
     }
 

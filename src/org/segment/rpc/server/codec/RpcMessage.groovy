@@ -3,17 +3,18 @@ package org.segment.rpc.server.codec
 import groovy.transform.CompileStatic
 import org.segment.rpc.server.handler.Req
 import org.segment.rpc.server.handler.Resp
+import org.segment.rpc.server.serialize.Compress
 import org.segment.rpc.server.serialize.CompressFactory
 import org.segment.rpc.server.serialize.Serializer
 import org.segment.rpc.server.serialize.SerializerFactory
 
 @CompileStatic
 class RpcMessage {
-    MessageType messageType = MessageType.REQ
+    Type messageType = Type.REQ
 
     Serializer.Type serializeType = Serializer.Type.KYRO
 
-    CompressType compressType = CompressType.NONE
+    Compress.Type compressType = Compress.Type.NONE
 
     int requestId
 
@@ -51,7 +52,7 @@ class RpcMessage {
 
         def compress = CompressFactory.create(compressType)
         def serializer = SerializerFactory.create(serializeType)
-        Class clazz = messageType == MessageType.REQ ? Req : Resp
+        Class clazz = messageType == Type.REQ ? Req : Resp
 
         def is = new ByteArrayInputStream(dataBytes)
 
@@ -66,75 +67,46 @@ class RpcMessage {
     }
 
     boolean isPingPong() {
-        messageType == MessageType.PING || messageType == MessageType.PONG
+        messageType == Type.PING || messageType == Type.PONG
     }
 
     RpcMessage response() {
         // use same types as request
         new RpcMessage(serializeType: this.serializeType,
-                messageType: this.messageType == MessageType.PING ? MessageType.PONG : MessageType.RESP,
+                messageType: this.messageType == Type.PING ? Type.PONG : Type.RESP,
                 compressType: this.compressType)
     }
 
     @CompileStatic
-    static enum MessageType {
+    static enum Type {
         REQ(1 as Byte), RESP(2 as Byte), PING(3 as Byte), PONG(4 as Byte), DISCONNECT(-1 as Byte)
 
         byte value
 
-        MessageType(byte value) {
+        Type(byte value) {
             this.value = value
         }
-    }
 
-    @CompileStatic
-    static enum CompressType {
-        NONE(1 as Byte), GZIP(2 as Byte), LZ4(3 as Byte), CUSTOM(4 as Byte)
+        static Type convert(byte b) {
+            if (b == 1) {
+                return REQ
+            }
 
-        byte value
+            if (b == 2) {
+                return RESP
+            }
 
-        CompressType(byte value) {
-            this.value = value
-        }
-    }
+            if (b == 3) {
+                return PING
+            }
 
-    static MessageType convertMessageType(byte b) {
-        if (b == 1) {
-            return MessageType.REQ
-        }
+            if (b == 4) {
+                return PONG
+            }
 
-        if (b == 2) {
-            return MessageType.RESP
-        }
-
-        if (b == 3) {
-            return MessageType.PING
-        }
-
-        if (b == 4) {
-            return MessageType.PONG
-        }
-
-        if (b == -1) {
-            return MessageType.DISCONNECT
-        }
-    }
-
-    static CompressType convertCompressType(byte b) {
-        if (b == 1) {
-            return CompressType.NONE
-        }
-
-        if (b == 2) {
-            return CompressType.GZIP
-        }
-
-        if (b == 3) {
-            return CompressType.LZ4
-        }
-
-        if (b == 4) {
-            return CompressType.CUSTOM
+            if (b == -1) {
+                return DISCONNECT
+            }
         }
     }
 }

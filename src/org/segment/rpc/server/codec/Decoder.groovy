@@ -5,12 +5,13 @@ import groovy.util.logging.Slf4j
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder
+import org.segment.rpc.server.serialize.Compress
 import org.segment.rpc.server.serialize.Serializer
 import org.segment.rpc.stats.CounterInMinute
 import org.segment.rpc.stats.StatsType
 
 import static org.segment.rpc.server.codec.Encoder.*
-import static org.segment.rpc.server.codec.RpcMessage.MessageType
+import static org.segment.rpc.server.codec.RpcMessage.Type
 
 @CompileStatic
 @Slf4j
@@ -59,16 +60,16 @@ class Decoder extends LengthFieldBasedFrameDecoder {
         int requestId = frame.readInt()
 
         RpcMessage message = new RpcMessage(
-                messageType: RpcMessage.convertMessageType(messageType),
+                messageType: RpcMessage.Type.convert(messageType),
                 serializeType: Serializer.Type.convert(serializeType),
-                compressType: RpcMessage.convertCompressType(compressType),
+                compressType: Compress.Type.convert(compressType),
                 requestId: requestId
         )
-        if (messageType == MessageType.PING.value) {
+        if (messageType == Type.PING.value) {
             return message
         }
 
-        if (messageType == MessageType.PONG.value) {
+        if (messageType == Type.PONG.value) {
             return message
         }
 

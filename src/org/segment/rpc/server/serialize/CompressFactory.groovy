@@ -13,16 +13,16 @@ class CompressFactory {
         ServiceLoader.load(Compress.class).find { it.class.name.contains('vendor') } != null
     }
 
-    static Compress create(RpcMessage.CompressType compressType) {
-        if (compressType == RpcMessage.CompressType.NONE) {
+    static Compress create(Compress.Type compressType) {
+        if (compressType == Compress.Type.NONE) {
             return null
         }
 
-        if (compressType == RpcMessage.CompressType.GZIP) {
+        if (compressType == Compress.Type.GZIP) {
             return new GZipCompress()
-        } else if (compressType == RpcMessage.CompressType.LZ4) {
+        } else if (compressType == Compress.Type.LZ4) {
             return new Lz4Compress()
-        } else if (compressType == RpcMessage.CompressType.CUSTOM) {
+        } else if (compressType == Compress.Type.CUSTOM) {
             def compress = (Compress) ServiceLoader.load(Compress.class).find { it.class.name.contains('vendor') }
             if (compress == null) {
                 throw new IllegalArgumentException("no custom compress found, " +
