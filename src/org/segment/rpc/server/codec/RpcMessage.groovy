@@ -49,6 +49,10 @@ class RpcMessage {
         if (dataBytes == null) {
             return
         }
+        // already convert to data when decode
+        if (data != null) {
+            return
+        }
 
         def compress = CompressFactory.create(compressType)
         def serializer = SerializerFactory.create(serializeType)
