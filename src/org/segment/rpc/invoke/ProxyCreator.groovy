@@ -32,7 +32,7 @@ class ProxyCreator {
         if (!interfaceClass.isInterface()) {
             throw new IllegalArgumentException('must be interface')
         }
-        def key = new Key(client.uuid, context, interfaceClass.name)
+        Key key = new Key(client.uuid, context, interfaceClass.name)
         def r = map.get(key)
         if (r != null) {
             return (T) r
