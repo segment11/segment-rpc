@@ -1,6 +1,8 @@
 package org.segment.rpc.demo
 
 import org.segment.rpc.common.ConsoleReader
+import org.segment.rpc.invoke.MethodMeta
+import org.segment.rpc.invoke.ProxyCreator
 import org.segment.rpc.server.RpcServer
 import org.segment.rpc.server.handler.ChainHandler
 import org.segment.rpc.server.handler.Resp
@@ -37,6 +39,12 @@ h.context('/rpc').group('/v1') {
 }
 
 DefaultProvider.instance.provide(SayInterface.class, new SayImpl())
+
+h.before(ProxyCreator.HANDLER_URI) { req ->
+    MethodMeta meta = req.body as MethodMeta
+    log.info meta.toString()
+    null
+}
 
 def reader = ConsoleReader.instance
 reader.quitHandler = {
