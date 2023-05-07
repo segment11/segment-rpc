@@ -21,7 +21,7 @@ class ZookeeperRegistry implements Registry {
 
     private ScheduledExecutorService scheduler
 
-    private List<RemoteUrl> remoteUrlListCachedLocal = new LinkedList<RemoteUrl>()
+    private List<RemoteUrl> remoteUrlListCachedLocal = new ArrayList<RemoteUrl>()
 
     private Map<String, List<RemoteUrl>> remoteUrlListCachedLocalByContext = new HashMap<String, List<RemoteUrl>>()
 
@@ -79,6 +79,8 @@ class ZookeeperRegistry implements Registry {
             log.info 'local cached list: {}', remoteUrlListCachedLocal.collect { it.toStringView() }.toString()
         }
 
+        boolean isLocalNeedUpdate = false
+
         // do merge list to local
         for (one in getList) {
             def localOne = remoteUrlListCachedLocal.find { it == one }
@@ -98,6 +100,8 @@ class ZookeeperRegistry implements Registry {
                 if (isNeedFire) {
                     eventHandler.fire(one, EventType.NEW_ADDED)
                 }
+
+                isLocalNeedUpdate = true
             } else {
                 // set ready false and trigger client do connect first and then set ready true when channel is active
                 if (initReadyFalse) {
@@ -106,6 +110,8 @@ class ZookeeperRegistry implements Registry {
                 remoteUrlListCachedLocal << one
                 log.info 'added new one - ' + one.toStringView()
                 eventHandler.fire(one, EventType.NEW_ADDED)
+
+                isLocalNeedUpdate = true
             }
         }
 
@@ -116,10 +122,19 @@ class ZookeeperRegistry implements Registry {
                 it.remove()
                 log.info 'removed old one - ' + one.toStringView()
                 eventHandler.fire(one, EventType.OLD_REMOVED)
+
+                isLocalNeedUpdate = true
             }
         }
 
-        remoteUrlListCachedLocal.groupBy { it.context }.each { context, subList -> remoteUrlListCachedLocalByContext.put(context, subList.sort())
+        if (isLocalNeedUpdate) {
+            log.info 'refresh local list'
+            remoteUrlListCachedLocal.each {
+                log.info it.toStringView()
+            }
+            remoteUrlListCachedLocal.groupBy { it.context }.each { context, subList ->
+                remoteUrlListCachedLocalByContext.put(context, subList.sort())
+            }
         }
     }
 
