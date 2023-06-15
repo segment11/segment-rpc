@@ -122,10 +122,7 @@ class ChainHandler implements Handler {
 
     private void removeOneThatExists(Handler handler, CopyOnWriteArrayList<Handler> ll = null) {
         def r = ll == null ? list : ll
-        def one = r.find { it.name() == handler.name() }
-        if (one) {
-            r.remove(one)
-        }
+        r.removeIf { it.name() == handler.name() }
     }
 
     private String context
@@ -143,17 +140,10 @@ class ChainHandler implements Handler {
     }
 
     synchronized void group(String groupPathPrefix, Closure closure) {
-        if (context) {
-            context += groupPathPrefix
-        } else {
-            context = groupPathPrefix
-        }
+        String oldContext = context
+        context = oldContext == null ? groupPathPrefix : oldContext + groupPathPrefix
         closure.call()
-        if (groupPathPrefix.length() >= context.size()) {
-            context = null
-        } else {
-            context = context[0..-(groupPathPrefix.length() + 1)]
-        }
+        context = oldContext
     }
 
     private synchronized ChainHandler add(String uri, AbstractHandler handler,
@@ -174,6 +164,10 @@ class ChainHandler implements Handler {
         handler.pattern = pattern
         removeOneThatExists(handler, ll)
         ll << handler
+        log.info 'add handler: {}', handler.uri
+        if (remoteUrl) {
+            handlerNumber.labels(getAddress(), remoteUrl.context).set(ll.size() as double)
+        }
         this
     }
 
