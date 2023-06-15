@@ -2,7 +2,7 @@
 A Java simple RPC framework based on netty writen in Groovy. Use routers instead of method invoke.
 
 ## features
-> 1. registry support local and zookeeper
+> 1. registry by zookeeper
 > 2. load balance
 > 3. metrics
 > 4. spring context support
