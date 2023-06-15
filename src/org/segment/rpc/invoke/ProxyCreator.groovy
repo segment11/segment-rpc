@@ -5,6 +5,7 @@ import groovy.transform.EqualsAndHashCode
 import groovy.transform.TupleConstructor
 import net.bytebuddy.ByteBuddy
 import net.bytebuddy.implementation.InvocationHandlerAdapter
+import net.bytebuddy.matcher.ElementMatcher
 import net.bytebuddy.matcher.ElementMatchers
 import org.segment.rpc.client.RpcClient
 import org.segment.rpc.server.handler.Req
@@ -38,12 +39,14 @@ class ProxyCreator {
             return (T) r
         }
 
+        ElementMatcher.Junction by = ElementMatchers.isDeclaredBy(interfaceClass)
+        ElementMatcher.Junction notStatic = ElementMatchers.not(ElementMatchers.isStatic())
+        ElementMatcher.Junction notObject = ElementMatchers.not(ElementMatchers.isDeclaredBy(Object.class))
+        def matcher = (by & notStatic) & notObject
         def newOne = new ByteBuddy()
                 .subclass(interfaceClass)
                 .name(interfaceClass.name + '_ProxyRpcCaller')
-                .method((ElementMatchers.isDeclaredBy(interfaceClass) &
-                        ElementMatchers.not(ElementMatchers.isStatic())) &
-                        ElementMatchers.not(ElementMatchers.isDeclaredBy(Object.class)))
+                .method(matcher)
                 .intercept(InvocationHandlerAdapter.of(new MethodInvocationHandler(client, context)))
                 .make()
                 .load(interfaceClass.classLoader)

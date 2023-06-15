@@ -25,7 +25,7 @@ class RpcConf extends AbstractConf {
     }
 
     private RpcConf load() {
-        Properties props = [:]
+        def props = new Properties()
         def stream = RpcConf.class.getResourceAsStream(CONF_FILE_NAME)
         if (stream) {
             def r = new InputStreamReader(stream, 'utf-8')

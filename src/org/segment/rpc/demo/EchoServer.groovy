@@ -20,7 +20,7 @@ def h = ChainHandler.instance
 h.context('/rpc').group('/v1') {
     h.get('/echo') { req ->
         if (isDoLog) {
-            log.info req.body
+            log.info req.body?.toString()
         }
 
         if (isEchoSleep) {

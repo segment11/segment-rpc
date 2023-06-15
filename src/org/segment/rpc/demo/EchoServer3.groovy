@@ -8,7 +8,7 @@ import org.segment.rpc.server.handler.Resp
 import org.segment.rpc.server.provider.DefaultProvider
 import org.slf4j.LoggerFactory
 
-Map props = [:]
+Map<String, ?> props = [:]
 props['server.listen.port'] = 28877
 props['server.metric.export'] = 0
 
@@ -21,7 +21,7 @@ def server = new RpcServer(c)
 def h = ChainHandler.instance
 h.context('/rpc').group('/v1') {
     h.get('/echo') { req ->
-        log.info req.body
+        log.info req.body?.toString()
 
         long ms = 10 + new Random().nextInt(50)
         Thread.currentThread().sleep(ms)
